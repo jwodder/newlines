@@ -1,4 +1,4 @@
-use super::errors::TryFromCharError;
+use super::errors::{TryFromCharError, TryFromStrError};
 use std::fmt;
 use strum::{EnumCount, EnumIter};
 
@@ -85,6 +85,24 @@ impl TryFrom<char> for Newline {
     }
 }
 
+impl TryFrom<&str> for Newline {
+    type Error = TryFromStrError;
+
+    fn try_from(value: &str) -> Result<Newline, TryFromStrError> {
+        match value {
+            "\n" => Ok(Newline::LineFeed),
+            "\r" => Ok(Newline::CarriageReturn),
+            "\r\n" => Ok(Newline::CrLf),
+            "\x0B" => Ok(Newline::VerticalTab),
+            "\x0C" => Ok(Newline::FormFeed),
+            "\u{0085}" => Ok(Newline::NextLine),
+            "\u{2028}" => Ok(Newline::LineSeparator),
+            "\u{2029}" => Ok(Newline::ParagraphSeparator),
+            _ => Err(TryFromStrError),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -115,6 +133,13 @@ mod tests {
             if let Some(ch) = nl.as_char() {
                 assert_eq!(Newline::try_from(ch), Ok(nl));
             }
+        }
+    }
+
+    #[test]
+    fn test_try_from_str() {
+        for nl in Newline::iter() {
+            assert_eq!(Newline::try_from(nl.as_str()), Ok(nl));
         }
     }
 }
