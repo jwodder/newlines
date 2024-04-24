@@ -131,6 +131,19 @@ mod tests {
     }
 
     #[test]
+    fn only_crlf_is_multichar() {
+        for nl in Newline::iter() {
+            if nl == Newline::CrLf {
+                assert!(nl.len_char() > 1);
+                assert!(nl.as_char().is_none());
+            } else {
+                assert!(nl.len_char() == 1);
+                assert!(nl.as_char().is_some());
+            }
+        }
+    }
+
+    #[test]
     fn test_len_char() {
         for nl in Newline::iter() {
             assert_eq!(nl.len_char(), nl.as_str().chars().count());
