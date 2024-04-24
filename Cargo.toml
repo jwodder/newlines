@@ -13,6 +13,7 @@ categories = []
 exclude = ["/.*"]
 
 [dependencies]
+strum = { version = "0.26.2", features = ["derive"] }
 
 [lints.rust]
 # Lint groups:
