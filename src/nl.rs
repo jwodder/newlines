@@ -38,15 +38,22 @@ impl Newline {
     }
 
     pub fn as_char(&self) -> Option<char> {
+        match self.chartype() {
+            CharType::Char(ch) => Some(ch),
+            CharType::CrLf => None,
+        }
+    }
+
+    pub(crate) fn chartype(&self) -> CharType {
         match self {
-            Newline::LineFeed => Some('\n'),
-            Newline::VerticalTab => Some('\x0B'),
-            Newline::FormFeed => Some('\x0C'),
-            Newline::CarriageReturn => Some('\r'),
-            Newline::CrLf => None,
-            Newline::NextLine => Some('\u{0085}'),
-            Newline::LineSeparator => Some('\u{2028}'),
-            Newline::ParagraphSeparator => Some('\u{2029}'),
+            Newline::LineFeed => CharType::Char('\n'),
+            Newline::VerticalTab => CharType::Char('\x0B'),
+            Newline::FormFeed => CharType::Char('\x0C'),
+            Newline::CarriageReturn => CharType::Char('\r'),
+            Newline::CrLf => CharType::CrLf,
+            Newline::NextLine => CharType::Char('\u{0085}'),
+            Newline::LineSeparator => CharType::Char('\u{2028}'),
+            Newline::ParagraphSeparator => CharType::Char('\u{2029}'),
         }
     }
 
@@ -101,6 +108,12 @@ impl TryFrom<&str> for Newline {
             _ => Err(TryFromStrError),
         }
     }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub(crate) enum CharType {
+    Char(char),
+    CrLf,
 }
 
 #[cfg(test)]
