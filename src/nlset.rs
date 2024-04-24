@@ -1,6 +1,6 @@
 use super::nl::{CharType, Newline};
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 pub struct NewlineSet {
     /// A super-array of the `&[char]` pattern used to search strings for the
     /// Newlines in the set.  `pattern_buf` consists of the `as_char()` of each
