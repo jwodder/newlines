@@ -119,10 +119,11 @@ pub(crate) enum CharType {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use itertools::Itertools;
 
     #[test]
     fn variants_sorted_by_str() {
-        for (before, after) in std::iter::zip(Newline::iter(), Newline::iter().skip(1)) {
+        for (before, after) in Newline::iter().tuple_windows() {
             let s1 = before.as_str();
             let s2 = after.as_str();
             assert!(s1 < s2, "{s1:?} >= {s2:?}");

@@ -78,6 +78,7 @@ impl Default for NewlineSet {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use itertools::Itertools;
 
     #[test]
     fn test_empty() {
@@ -98,6 +99,21 @@ mod tests {
             assert!(!nlset.is_empty());
             for nl2 in Newline::iter() {
                 assert_eq!(nlset.contains(nl2), nl == nl2);
+            }
+        }
+    }
+
+    #[test]
+    fn test_insert_two() {
+        for nls in Newline::iter().permutations(2) {
+            let [nl1, nl2] = nls.try_into().unwrap();
+            let mut nlset = NewlineSet::new();
+            nlset.insert(nl1);
+            nlset.insert(nl2);
+            assert_eq!(nlset.len(), 2);
+            assert!(!nlset.is_empty());
+            for nl in Newline::iter() {
+                assert_eq!(nlset.contains(nl), nl == nl1 || nl == nl2);
             }
         }
     }
