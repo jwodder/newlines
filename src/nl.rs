@@ -5,10 +5,10 @@ use strum::{EnumCount, EnumIter};
 #[derive(Copy, Clone, Debug, EnumCount, EnumIter, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Newline {
     LineFeed,
-    CarriageReturn,
-    CrLf,
     VerticalTab,
     FormFeed,
+    CarriageReturn,
+    CrLf,
     NextLine,           // 0x85
     LineSeparator,      // U+2028
     ParagraphSeparator, // U+2029
@@ -27,10 +27,10 @@ impl Newline {
     pub fn as_str(&self) -> &'static str {
         match self {
             Newline::LineFeed => "\n",
-            Newline::CarriageReturn => "\r",
-            Newline::CrLf => "\r\n",
             Newline::VerticalTab => "\x0B",
             Newline::FormFeed => "\x0C",
+            Newline::CarriageReturn => "\r",
+            Newline::CrLf => "\r\n",
             Newline::NextLine => "\u{0085}",
             Newline::LineSeparator => "\u{2028}",
             Newline::ParagraphSeparator => "\u{2029}",
@@ -40,10 +40,10 @@ impl Newline {
     pub fn as_char(&self) -> Option<char> {
         match self {
             Newline::LineFeed => Some('\n'),
-            Newline::CarriageReturn => Some('\r'),
-            Newline::CrLf => None,
             Newline::VerticalTab => Some('\x0B'),
             Newline::FormFeed => Some('\x0C'),
+            Newline::CarriageReturn => Some('\r'),
+            Newline::CrLf => None,
             Newline::NextLine => Some('\u{0085}'),
             Newline::LineSeparator => Some('\u{2028}'),
             Newline::ParagraphSeparator => Some('\u{2029}'),
@@ -74,9 +74,9 @@ impl TryFrom<char> for Newline {
     fn try_from(value: char) -> Result<Newline, TryFromCharError> {
         match value {
             '\n' => Ok(Newline::LineFeed),
-            '\r' => Ok(Newline::CarriageReturn),
             '\x0B' => Ok(Newline::VerticalTab),
             '\x0C' => Ok(Newline::FormFeed),
+            '\r' => Ok(Newline::CarriageReturn),
             '\u{0085}' => Ok(Newline::NextLine),
             '\u{2028}' => Ok(Newline::LineSeparator),
             '\u{2029}' => Ok(Newline::ParagraphSeparator),
@@ -91,10 +91,10 @@ impl TryFrom<&str> for Newline {
     fn try_from(value: &str) -> Result<Newline, TryFromStrError> {
         match value {
             "\n" => Ok(Newline::LineFeed),
-            "\r" => Ok(Newline::CarriageReturn),
-            "\r\n" => Ok(Newline::CrLf),
             "\x0B" => Ok(Newline::VerticalTab),
             "\x0C" => Ok(Newline::FormFeed),
+            "\r" => Ok(Newline::CarriageReturn),
+            "\r\n" => Ok(Newline::CrLf),
             "\u{0085}" => Ok(Newline::NextLine),
             "\u{2028}" => Ok(Newline::LineSeparator),
             "\u{2029}" => Ok(Newline::ParagraphSeparator),
@@ -106,6 +106,15 @@ impl TryFrom<&str> for Newline {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn variants_sorted_by_str() {
+        for (before, after) in std::iter::zip(Newline::iter(), Newline::iter().skip(1)) {
+            let s1 = before.as_str();
+            let s2 = after.as_str();
+            assert!(s1 < s2, "{s1:?} >= {s2:?}");
+        }
+    }
 
     #[test]
     fn test_len_char() {
