@@ -51,6 +51,7 @@ impl NewlineSet {
         }
     }
 
+    // TODO: Return `true` if `nl` was not in `self` before insertion
     pub fn insert(&mut self, nl: Newline) {
         let ch = match nl.chartype() {
             CharType::Char(ch) => ch,
@@ -67,6 +68,40 @@ impl NewlineSet {
             self.crlf = true;
         }
     }
+
+    // Returns `true` if `nl` was in `self` before removal
+    pub fn remove(&mut self, nl: Newline) -> bool {
+        let ch = match nl.chartype() {
+            CharType::Char('\r') => {
+                if !std::mem::replace(&mut self.cr, false) {
+                    return false;
+                }
+                if self.crlf {
+                    return true;
+                }
+                '\r'
+            }
+            CharType::Char(ch) => ch,
+            CharType::CrLf => {
+                if !std::mem::replace(&mut self.crlf, false) {
+                    return false;
+                }
+                if self.cr {
+                    return true;
+                }
+                '\r'
+            }
+        };
+        match self.pattern_buf[..self.pattern_len].binary_search(&ch) {
+            Ok(i) => {
+                self.pattern_buf[i] = '\0';
+                self.pattern_buf[i..].rotate_left(1);
+                self.pattern_len -= 1;
+                true
+            }
+            Err(_) => false,
+        }
+    }
 }
 
 impl Default for NewlineSet {
@@ -80,14 +115,22 @@ mod tests {
     use super::*;
     use itertools::Itertools;
 
-    #[test]
-    fn test_empty() {
-        let nlset = NewlineSet::new();
+    fn assert_empty(nlset: NewlineSet) {
         assert_eq!(nlset.len(), 0);
         assert!(nlset.is_empty());
         for nl in Newline::iter() {
             assert!(!nlset.contains(nl));
         }
+        assert!(nlset.pattern_buf.into_iter().all(|ch| ch == '\0'));
+        assert_eq!(nlset.pattern_len, 0);
+        assert!(!nlset.cr);
+        assert!(!nlset.crlf);
+    }
+
+    #[test]
+    fn test_empty() {
+        let nlset = NewlineSet::new();
+        assert_empty(nlset);
     }
 
     #[test]
@@ -114,6 +157,41 @@ mod tests {
             assert!(!nlset.is_empty());
             for nl in Newline::iter() {
                 assert_eq!(nlset.contains(nl), nl == nl1 || nl == nl2);
+            }
+        }
+    }
+
+    #[test]
+    fn test_remove_from_empty() {
+        for nl in Newline::iter() {
+            let mut nlset = NewlineSet::new();
+            assert!(!nlset.remove(nl));
+            assert_empty(nlset);
+        }
+    }
+
+    #[test]
+    fn test_insert_and_remove() {
+        for nl in Newline::iter() {
+            let mut nlset = NewlineSet::new();
+            nlset.insert(nl);
+            assert!(nlset.remove(nl));
+            assert_empty(nlset);
+        }
+    }
+
+    #[test]
+    fn test_insert_two_remove_first() {
+        for nls in Newline::iter().permutations(2) {
+            let [nl1, nl2] = nls.try_into().unwrap();
+            let mut nlset = NewlineSet::new();
+            nlset.insert(nl1);
+            nlset.insert(nl2);
+            assert!(nlset.remove(nl1));
+            assert_eq!(nlset.len(), 1);
+            assert!(!nlset.is_empty());
+            for nl in Newline::iter() {
+                assert_eq!(nlset.contains(nl), nl == nl2);
             }
         }
     }
