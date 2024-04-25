@@ -1,9 +1,10 @@
 use super::iter::IntoIter;
 use super::nl::{CharType, Newline};
+use std::fmt;
 
 pub(crate) type PatternBuf = [char; Newline::COUNT - 1];
 
-#[derive(Copy, Clone, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Copy, Clone, Default, Eq, Hash, PartialEq)]
 pub struct NewlineSet {
     /// A super-array of the `&[char]` pattern used to search strings for the
     /// Newlines in the set.  `pattern_buf` consists of the `as_char()` of each
@@ -120,6 +121,12 @@ impl NewlineSet {
 
     pub fn clear(&mut self) {
         *self = Self::default();
+    }
+}
+
+impl fmt::Debug for NewlineSet {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_set().entries(*self).finish()
     }
 }
 
@@ -320,6 +327,34 @@ mod tests {
         for nl in Newline::iter() {
             let nlset = NewlineSet::from(nl);
             assert_singleton(nlset, nl);
+        }
+    }
+
+    mod debug {
+        use super::*;
+
+        #[test]
+        fn empty() {
+            let nlset = NewlineSet::new();
+            assert_eq!(format!("{nlset:?}"), "{}");
+            assert_eq!(format!("{nlset:#?}"), "{}");
+        }
+
+        #[test]
+        fn singleton() {
+            let nlset = NewlineSet::from(Newline::LineFeed);
+            assert_eq!(format!("{nlset:?}"), "{LineFeed}");
+            assert_eq!(format!("{nlset:#?}"), "{\n    LineFeed,\n}");
+        }
+
+        #[test]
+        fn pair() {
+            let nlset = NewlineSet::from([Newline::LineFeed, Newline::CarriageReturn]);
+            assert_eq!(format!("{nlset:?}"), "{LineFeed, CarriageReturn}");
+            assert_eq!(
+                format!("{nlset:#?}"),
+                "{\n    LineFeed,\n    CarriageReturn,\n}"
+            );
         }
     }
 
