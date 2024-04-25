@@ -1,12 +1,11 @@
+use super::charset::CharSetIter;
 use super::nl::Newline;
-use super::nlset::{NewlineSet, PatternBuf};
+use super::nlset::NewlineSet;
 use std::iter::FusedIterator;
 
 #[derive(Clone, Debug)]
 pub struct IntoIter {
-    pattern_buf: PatternBuf,
-    pattern_len: usize,
-    i: usize,
+    inner: CharSetIter,
     cr: bool,
     crlf: bool,
 }
@@ -14,9 +13,7 @@ pub struct IntoIter {
 impl IntoIter {
     pub(crate) fn new(nlset: NewlineSet) -> IntoIter {
         IntoIter {
-            pattern_buf: nlset.pattern_buf,
-            pattern_len: nlset.pattern_len,
-            i: 0,
+            inner: nlset.pattern.into_iter(),
             cr: nlset.cr,
             crlf: nlset.crlf,
         }
@@ -27,33 +24,32 @@ impl Iterator for IntoIter {
     type Item = Newline;
 
     fn next(&mut self) -> Option<Newline> {
-        if self.i >= self.pattern_len {
-            return None;
-        }
-        match (self.pattern_buf[self.i], self.cr, self.crlf) {
-            ('\r', true, crlf) => {
+        match (self.inner.peek(), self.cr, self.crlf) {
+            (Some('\r'), true, crlf) => {
                 self.cr = false;
                 if !crlf {
-                    self.i += 1;
+                    self.inner.next();
                 }
                 Some(Newline::CarriageReturn)
             }
-            ('\r', false, true) => {
+            (Some('\r'), false, true) => {
                 self.crlf = false;
-                self.i += 1;
+                self.inner.next();
                 Some(Newline::CrLf)
             }
-            (ch, _, _) => {
+            (Some(ch), _, _) => {
                 let nl = Newline::try_from(ch).ok();
                 debug_assert!(nl.is_some(), "Char in pattern buf should map to Newline");
-                self.i += 1;
+                self.inner.next();
                 nl
             }
+            (None, _, _) => None,
         }
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let sz = self.pattern_len - self.i + usize::from(self.cr && self.crlf);
+        let (mut sz, _) = self.inner.size_hint();
+        sz += usize::from(self.cr && self.crlf);
         (sz, Some(sz))
     }
 }
@@ -64,28 +60,26 @@ impl ExactSizeIterator for IntoIter {}
 
 impl DoubleEndedIterator for IntoIter {
     fn next_back(&mut self) -> Option<Newline> {
-        if self.i >= self.pattern_len {
-            return None;
-        }
-        match (self.pattern_buf[self.pattern_len - 1], self.cr, self.crlf) {
-            ('\r', cr, true) => {
+        match (self.inner.peek_back(), self.cr, self.crlf) {
+            (Some('\r'), cr, true) => {
                 self.crlf = false;
                 if !cr {
-                    self.pattern_len -= 1;
+                    self.inner.next_back();
                 }
                 Some(Newline::CrLf)
             }
-            ('\r', true, false) => {
+            (Some('\r'), true, false) => {
                 self.cr = false;
-                self.pattern_len -= 1;
+                self.inner.next_back();
                 Some(Newline::CarriageReturn)
             }
-            (ch, _, _) => {
+            (Some(ch), _, _) => {
                 let nl = Newline::try_from(ch).ok();
                 debug_assert!(nl.is_some(), "Char in pattern buf should map to Newline");
-                self.pattern_len -= 1;
+                self.inner.next_back();
                 nl
             }
+            (None, _, _) => None,
         }
     }
 }

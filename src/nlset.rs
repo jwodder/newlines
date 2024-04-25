@@ -1,25 +1,17 @@
+use super::charset::CharSet;
 use super::iter::IntoIter;
 use super::nl::{CharType, Newline};
 use std::fmt;
 
-pub(crate) type PatternBuf = [char; Newline::COUNT - 1];
-
 #[derive(Copy, Clone, Default, Eq, Hash, PartialEq)]
 pub struct NewlineSet {
-    /// A super-array of the `&[char]` pattern used to search strings for the
-    /// Newlines in the set.  `pattern_buf` consists of the `as_char()` of each
-    /// Newline in the set in codepoint order, with trailing unused elements
-    /// set to '\0'.
+    /// The set of initial characters of the string representations of the
+    /// `Newline` variants in the `NewlineSet`.  This is used to produce the
+    /// `&[char]` pattern used to search strings for newlines.
     ///
-    /// If CrLf is in the set, then `pattern_buf` contains '\r'.  If both CrLf
-    /// and CarriageReturn are in the set, `pattern_buf` will only contain one
-    /// '\r'.  (Hence, the length of the array can be one less than
-    /// `Newline::COUNT`.)
-    pub(crate) pattern_buf: PatternBuf,
-
-    /// The length of the pattern in `pattern_buf`, i.e., the number of leading
-    /// non-NUL elements
-    pub(crate) pattern_len: usize,
+    /// Note that `'\r'` will be in `pattern` if either or both of
+    /// CarriageReturn and CrLf are in the `NewlineSet`.
+    pub(crate) pattern: CharSet,
 
     /// Whether CarriageReturn is in the set
     pub(crate) cr: bool,
@@ -34,19 +26,17 @@ impl NewlineSet {
     }
 
     pub fn len(&self) -> usize {
-        self.pattern_len + usize::from(self.cr && self.crlf)
+        self.pattern.len() + usize::from(self.cr && self.crlf)
     }
 
     pub fn is_empty(&self) -> bool {
-        self.pattern_len == 0
+        self.pattern.is_empty()
     }
 
     pub fn contains(&self, nl: Newline) -> bool {
         match nl.chartype() {
             CharType::Char('\r') => self.cr,
-            CharType::Char(ch) => self.pattern_buf[..self.pattern_len]
-                .binary_search(&ch)
-                .is_ok(),
+            CharType::Char(ch) => self.pattern.contains(ch),
             CharType::CrLf => self.crlf,
         }
     }
@@ -74,15 +64,7 @@ impl NewlineSet {
                 '\r'
             }
         };
-        match self.pattern_buf[..self.pattern_len].binary_search(&ch) {
-            Ok(_) => false,
-            Err(i) => {
-                self.pattern_buf[i..].rotate_right(1);
-                self.pattern_buf[i] = ch;
-                self.pattern_len += 1;
-                true
-            }
-        }
+        self.pattern.insert(ch)
     }
 
     // Returns `true` if `nl` was in `self` before removal
@@ -108,15 +90,7 @@ impl NewlineSet {
                 '\r'
             }
         };
-        match self.pattern_buf[..self.pattern_len].binary_search(&ch) {
-            Ok(i) => {
-                self.pattern_buf[i] = '\0';
-                self.pattern_buf[i..].rotate_left(1);
-                self.pattern_len -= 1;
-                true
-            }
-            Err(_) => false,
-        }
+        self.pattern.remove(ch)
     }
 
     pub fn clear(&mut self) {
@@ -156,8 +130,7 @@ impl<const N: usize> From<[Newline; N]> for NewlineSet {
                 }
             };
             if prev_char.replace(ch) != Some(ch) {
-                nlset.pattern_buf[nlset.pattern_len] = ch;
-                nlset.pattern_len += 1;
+                nlset.pattern.append(ch);
             }
         }
         nlset
@@ -201,8 +174,6 @@ mod tests {
         for nl in Newline::iter() {
             assert!(!nlset.contains(nl));
         }
-        assert!(nlset.pattern_buf.into_iter().all(|ch| ch == '\0'));
-        assert_eq!(nlset.pattern_len, 0);
         assert!(!nlset.cr);
         assert!(!nlset.crlf);
         assert_eq!(nlset, NewlineSet::new());

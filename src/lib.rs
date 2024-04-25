@@ -1,3 +1,4 @@
+mod charset;
 mod errors;
 pub mod iter;
 mod nl;
