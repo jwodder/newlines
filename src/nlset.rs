@@ -1,4 +1,4 @@
-use super::charset::CharSet;
+use super::charset::{CharSet, Diff};
 use super::iter::IntoIter;
 use super::nl::{CharType, Newline};
 use std::fmt;
@@ -95,6 +95,21 @@ impl NewlineSet {
 
     pub fn clear(&mut self) {
         *self = Self::default();
+    }
+
+    pub fn is_disjoint(&self, other: NewlineSet) -> bool {
+        for d in self.pattern.diff(other.pattern) {
+            match d {
+                Diff::Left(_) | Diff::Right(_) => (),
+                Diff::Both('\r') => {
+                    if self.cr && other.cr || self.crlf && other.crlf {
+                        return false;
+                    }
+                }
+                Diff::Both(_) => return false,
+            }
+        }
+        true
     }
 }
 
@@ -495,6 +510,90 @@ mod tests {
                     Newline::NextLine,
                 ]
             );
+        }
+    }
+
+    mod is_disjoint {
+        use super::*;
+
+        #[test]
+        fn empty_empty() {
+            let nlset1 = NewlineSet::new();
+            let nlset2 = NewlineSet::new();
+            assert!(nlset1.is_disjoint(nlset2));
+            assert!(nlset2.is_disjoint(nlset1));
+        }
+
+        #[test]
+        fn empty_singleton() {
+            let nlset1 = NewlineSet::new();
+            let nlset2 = NewlineSet::from(Newline::LineFeed);
+            assert!(nlset1.is_disjoint(nlset2));
+            assert!(nlset2.is_disjoint(nlset1));
+        }
+
+        #[test]
+        fn different_singletons() {
+            let nlset1 = NewlineSet::from(Newline::FormFeed);
+            let nlset2 = NewlineSet::from(Newline::LineFeed);
+            assert!(nlset1.is_disjoint(nlset2));
+            assert!(nlset2.is_disjoint(nlset1));
+        }
+
+        #[test]
+        fn equal_singletons() {
+            let nlset1 = NewlineSet::from(Newline::FormFeed);
+            let nlset2 = NewlineSet::from(Newline::FormFeed);
+            assert!(!nlset1.is_disjoint(nlset2));
+            assert!(!nlset2.is_disjoint(nlset1));
+        }
+
+        #[test]
+        fn overlapping_pairs() {
+            let nlset1 = NewlineSet::from([Newline::LineFeed, Newline::VerticalTab]);
+            let nlset2 = NewlineSet::from([Newline::VerticalTab, Newline::FormFeed]);
+            assert!(!nlset1.is_disjoint(nlset2));
+            assert!(!nlset2.is_disjoint(nlset1));
+        }
+
+        #[test]
+        fn cr_vs_cr() {
+            let nlset1 = NewlineSet::from(Newline::CarriageReturn);
+            let nlset2 = NewlineSet::from(Newline::CarriageReturn);
+            assert!(!nlset1.is_disjoint(nlset2));
+            assert!(!nlset2.is_disjoint(nlset1));
+        }
+
+        #[test]
+        fn cr_vs_crlf() {
+            let nlset1 = NewlineSet::from(Newline::CarriageReturn);
+            let nlset2 = NewlineSet::from(Newline::CrLf);
+            assert!(nlset1.is_disjoint(nlset2));
+            assert!(nlset2.is_disjoint(nlset1));
+        }
+
+        #[test]
+        fn crlf_vs_crlf() {
+            let nlset1 = NewlineSet::from(Newline::CrLf);
+            let nlset2 = NewlineSet::from(Newline::CrLf);
+            assert!(!nlset1.is_disjoint(nlset2));
+            assert!(!nlset2.is_disjoint(nlset1));
+        }
+
+        #[test]
+        fn cr_crlf_vs_cr() {
+            let nlset1 = NewlineSet::from([Newline::CarriageReturn, Newline::CrLf]);
+            let nlset2 = NewlineSet::from(Newline::CarriageReturn);
+            assert!(!nlset1.is_disjoint(nlset2));
+            assert!(!nlset2.is_disjoint(nlset1));
+        }
+
+        #[test]
+        fn cr_crlf_vs_crlf() {
+            let nlset1 = NewlineSet::from([Newline::CarriageReturn, Newline::CrLf]);
+            let nlset2 = NewlineSet::from(Newline::CrLf);
+            assert!(!nlset1.is_disjoint(nlset2));
+            assert!(!nlset2.is_disjoint(nlset1));
         }
     }
 }
