@@ -9,8 +9,9 @@ pub struct NewlineSet {
     ///
     /// If CrLf is in the set, then `pattern_buf` contains '\r'.  If both CrLf
     /// and CarriageReturn are in the set, `pattern_buf` will only contain one
-    /// '\r'.
-    pattern_buf: [char; Newline::COUNT],
+    /// '\r'.  (Hence, the length of the array can be one less than
+    /// `Newline::COUNT`.)
+    pattern_buf: [char; Newline::COUNT - 1],
 
     /// The length of the pattern in `pattern_buf`, i.e., the number of leading
     /// non-NUL elements
