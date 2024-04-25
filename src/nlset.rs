@@ -154,6 +154,14 @@ impl<const N: usize> From<[Newline; N]> for NewlineSet {
     }
 }
 
+impl Extend<Newline> for NewlineSet {
+    fn extend<I: IntoIterator<Item = Newline>>(&mut self, iter: I) {
+        for nl in iter {
+            self.insert(nl);
+        }
+    }
+}
+
 impl FromIterator<Newline> for NewlineSet {
     fn from_iter<I: IntoIterator<Item = Newline>>(iter: I) -> NewlineSet {
         iter.into_iter().fold(NewlineSet::new(), |mut nlset, nl| {
@@ -178,6 +186,25 @@ mod tests {
         assert_eq!(nlset.pattern_len, 0);
         assert!(!nlset.cr);
         assert!(!nlset.crlf);
+        assert_eq!(nlset, NewlineSet::new());
+    }
+
+    fn assert_singleton(nlset: NewlineSet, nl: Newline) {
+        assert_eq!(nlset.len(), 1);
+        assert!(!nlset.is_empty());
+        for nl2 in Newline::iter() {
+            assert_eq!(nlset.contains(nl2), nl == nl2);
+        }
+        assert_eq!(nlset, NewlineSet::from([nl]));
+    }
+
+    fn assert_pair(nlset: NewlineSet, nl1: Newline, nl2: Newline) {
+        assert_eq!(nlset.len(), 2);
+        assert!(!nlset.is_empty());
+        for nl in Newline::iter() {
+            assert_eq!(nlset.contains(nl), nl == nl1 || nl == nl2);
+        }
+        assert_eq!(nlset, NewlineSet::from([nl1, nl2]));
     }
 
     #[test]
@@ -193,11 +220,7 @@ mod tests {
         for nl in Newline::iter() {
             let mut nlset = NewlineSet::new();
             assert!(nlset.insert(nl));
-            assert_eq!(nlset.len(), 1);
-            assert!(!nlset.is_empty());
-            for nl2 in Newline::iter() {
-                assert_eq!(nlset.contains(nl2), nl == nl2);
-            }
+            assert_singleton(nlset, nl);
         }
     }
 
@@ -207,11 +230,7 @@ mod tests {
             let mut nlset = NewlineSet::new();
             assert!(nlset.insert(nl));
             assert!(!nlset.insert(nl));
-            assert_eq!(nlset.len(), 1);
-            assert!(!nlset.is_empty());
-            for nl2 in Newline::iter() {
-                assert_eq!(nlset.contains(nl2), nl == nl2);
-            }
+            assert_singleton(nlset, nl);
         }
     }
 
@@ -232,11 +251,7 @@ mod tests {
             let mut nlset = NewlineSet::new();
             assert!(nlset.insert(nl1));
             assert!(nlset.insert(nl2));
-            assert_eq!(nlset.len(), 2);
-            assert!(!nlset.is_empty());
-            for nl in Newline::iter() {
-                assert_eq!(nlset.contains(nl), nl == nl1 || nl == nl2);
-            }
+            assert_pair(nlset, nl1, nl2);
         }
     }
 
@@ -278,11 +293,7 @@ mod tests {
             assert!(nlset.insert(nl1));
             assert!(nlset.insert(nl2));
             assert!(nlset.remove(nl1));
-            assert_eq!(nlset.len(), 1);
-            assert!(!nlset.is_empty());
-            for nl in Newline::iter() {
-                assert_eq!(nlset.contains(nl), nl == nl2);
-            }
+            assert_singleton(nlset, nl2);
         }
     }
 
@@ -290,11 +301,7 @@ mod tests {
     fn test_from_newline() {
         for nl in Newline::iter() {
             let nlset = NewlineSet::from(nl);
-            assert_eq!(nlset.len(), 1);
-            assert!(!nlset.is_empty());
-            for nl2 in Newline::iter() {
-                assert_eq!(nlset.contains(nl2), nl == nl2);
-            }
+            assert_singleton(nlset, nl);
         }
     }
 
@@ -311,11 +318,7 @@ mod tests {
         fn singleton() {
             for nl in Newline::iter() {
                 let nlset = NewlineSet::from([nl]);
-                assert_eq!(nlset.len(), 1);
-                assert!(!nlset.is_empty());
-                for nl2 in Newline::iter() {
-                    assert_eq!(nlset.contains(nl2), nl == nl2);
-                }
+                assert_singleton(nlset, nl);
             }
         }
 
@@ -324,11 +327,7 @@ mod tests {
             for nls in Newline::iter().permutations(2) {
                 let [nl1, nl2] = nls.try_into().unwrap();
                 let nlset = NewlineSet::from([nl1, nl2]);
-                assert_eq!(nlset.len(), 2);
-                assert!(!nlset.is_empty());
-                for nl in Newline::iter() {
-                    assert_eq!(nlset.contains(nl), nl == nl1 || nl == nl2);
-                }
+                assert_pair(nlset, nl1, nl2);
             }
         }
 
@@ -336,11 +335,7 @@ mod tests {
         fn duplicated_elem() {
             for nl in Newline::iter() {
                 let nlset = NewlineSet::from([nl, nl]);
-                assert_eq!(nlset.len(), 1);
-                assert!(!nlset.is_empty());
-                for nl2 in Newline::iter() {
-                    assert_eq!(nlset.contains(nl2), nl == nl2);
-                }
+                assert_singleton(nlset, nl);
             }
         }
     }
@@ -358,11 +353,7 @@ mod tests {
         fn singleton() {
             for nl in Newline::iter() {
                 let nlset = NewlineSet::from_iter(std::iter::once(nl));
-                assert_eq!(nlset.len(), 1);
-                assert!(!nlset.is_empty());
-                for nl2 in Newline::iter() {
-                    assert_eq!(nlset.contains(nl2), nl == nl2);
-                }
+                assert_singleton(nlset, nl);
             }
         }
 
@@ -372,11 +363,7 @@ mod tests {
                 let nl1 = nls[0];
                 let nl2 = nls[1];
                 let nlset = NewlineSet::from_iter(nls);
-                assert_eq!(nlset.len(), 2);
-                assert!(!nlset.is_empty());
-                for nl in Newline::iter() {
-                    assert_eq!(nlset.contains(nl), nl == nl1 || nl == nl2);
-                }
+                assert_pair(nlset, nl1, nl2);
             }
         }
 
@@ -384,11 +371,7 @@ mod tests {
         fn duplicated_elem() {
             for nl in Newline::iter() {
                 let nlset = NewlineSet::from_iter([nl, nl]);
-                assert_eq!(nlset.len(), 1);
-                assert!(!nlset.is_empty());
-                for nl2 in Newline::iter() {
-                    assert_eq!(nlset.contains(nl2), nl == nl2);
-                }
+                assert_singleton(nlset, nl);
             }
         }
 
@@ -400,6 +383,76 @@ mod tests {
             for nl in Newline::iter() {
                 assert!(nlset.contains(nl));
             }
+        }
+    }
+
+    mod extend {
+        use super::*;
+
+        #[test]
+        fn empty_plus_empty() {
+            let mut nlset = NewlineSet::new();
+            nlset.extend(std::iter::empty());
+            assert_empty(nlset);
+        }
+
+        #[test]
+        fn empty_plus_one() {
+            for nl in Newline::iter() {
+                let mut nlset = NewlineSet::new();
+                nlset.extend([nl]);
+                assert_singleton(nlset, nl);
+            }
+        }
+
+        #[test]
+        fn empty_plus_two() {
+            for nls in Newline::iter().permutations(2) {
+                let nl1 = nls[0];
+                let nl2 = nls[1];
+                let mut nlset = NewlineSet::new();
+                nlset.extend(nls);
+                assert_pair(nlset, nl1, nl2);
+            }
+        }
+
+        #[test]
+        fn empty_plus_one_twice() {
+            for nl in Newline::iter() {
+                let mut nlset = NewlineSet::new();
+                nlset.extend([nl, nl]);
+                assert_singleton(nlset, nl);
+            }
+        }
+
+        #[test]
+        fn empty_plus_all() {
+            let mut nlset = NewlineSet::new();
+            nlset.extend(Newline::iter());
+            assert_eq!(nlset.len(), Newline::COUNT);
+            assert!(!nlset.is_empty());
+            for nl in Newline::iter() {
+                assert!(nlset.contains(nl));
+            }
+        }
+
+        #[test]
+        fn mixture() {
+            let mut nlset =
+                NewlineSet::from([Newline::LineFeed, Newline::CarriageReturn, Newline::CrLf]);
+            nlset.extend([Newline::VerticalTab, Newline::LineFeed, Newline::NextLine]);
+            assert_eq!(nlset.len(), 5);
+            assert!(!nlset.is_empty());
+            assert_eq!(
+                nlset,
+                NewlineSet::from([
+                    Newline::LineFeed,
+                    Newline::VerticalTab,
+                    Newline::CarriageReturn,
+                    Newline::CrLf,
+                    Newline::NextLine,
+                ])
+            );
         }
     }
 }
