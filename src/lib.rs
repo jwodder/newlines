@@ -1,4 +1,5 @@
 mod errors;
+pub mod iter;
 mod nl;
 mod nlset;
 pub use errors::*;

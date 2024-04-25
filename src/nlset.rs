@@ -1,4 +1,7 @@
+use super::iter::IntoIter;
 use super::nl::{CharType, Newline};
+
+pub(crate) type PatternBuf = [char; Newline::COUNT - 1];
 
 #[derive(Copy, Clone, Debug, Default, Eq, Hash, PartialEq)]
 pub struct NewlineSet {
@@ -11,17 +14,17 @@ pub struct NewlineSet {
     /// and CarriageReturn are in the set, `pattern_buf` will only contain one
     /// '\r'.  (Hence, the length of the array can be one less than
     /// `Newline::COUNT`.)
-    pattern_buf: [char; Newline::COUNT - 1],
+    pub(crate) pattern_buf: PatternBuf,
 
     /// The length of the pattern in `pattern_buf`, i.e., the number of leading
     /// non-NUL elements
-    pattern_len: usize,
+    pub(crate) pattern_len: usize,
 
     /// Whether CarriageReturn is in the set
-    cr: bool,
+    pub(crate) cr: bool,
 
     /// Whether CrLf is in the set
-    crlf: bool,
+    pub(crate) crlf: bool,
 }
 
 impl NewlineSet {
@@ -171,6 +174,15 @@ impl FromIterator<Newline> for NewlineSet {
     }
 }
 
+impl IntoIterator for NewlineSet {
+    type Item = Newline;
+    type IntoIter = IntoIter;
+
+    fn into_iter(self) -> IntoIter {
+        IntoIter::new(self)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -187,6 +199,7 @@ mod tests {
         assert!(!nlset.cr);
         assert!(!nlset.crlf);
         assert_eq!(nlset, NewlineSet::new());
+        assert_eq!(nlset.into_iter().count(), 0);
     }
 
     fn assert_singleton(nlset: NewlineSet, nl: Newline) {
@@ -196,6 +209,7 @@ mod tests {
             assert_eq!(nlset.contains(nl2), nl == nl2);
         }
         assert_eq!(nlset, NewlineSet::from([nl]));
+        assert_eq!(nlset.into_iter().collect_vec(), [nl]);
     }
 
     fn assert_pair(nlset: NewlineSet, nl1: Newline, nl2: Newline) {
@@ -205,6 +219,10 @@ mod tests {
             assert_eq!(nlset.contains(nl), nl == nl1 || nl == nl2);
         }
         assert_eq!(nlset, NewlineSet::from([nl1, nl2]));
+        assert_eq!(
+            nlset.into_iter().collect_vec(),
+            [std::cmp::min(nl1, nl2), std::cmp::max(nl1, nl2)]
+        );
     }
 
     #[test]
@@ -383,6 +401,10 @@ mod tests {
             for nl in Newline::iter() {
                 assert!(nlset.contains(nl));
             }
+            assert_eq!(
+                nlset.into_iter().collect_vec(),
+                Newline::iter().collect_vec()
+            );
         }
     }
 
@@ -434,6 +456,10 @@ mod tests {
             for nl in Newline::iter() {
                 assert!(nlset.contains(nl));
             }
+            assert_eq!(
+                nlset.into_iter().collect_vec(),
+                Newline::iter().collect_vec()
+            );
         }
 
         #[test]
@@ -452,6 +478,16 @@ mod tests {
                     Newline::CrLf,
                     Newline::NextLine,
                 ])
+            );
+            assert_eq!(
+                nlset.into_iter().collect_vec(),
+                [
+                    Newline::LineFeed,
+                    Newline::VerticalTab,
+                    Newline::CarriageReturn,
+                    Newline::CrLf,
+                    Newline::NextLine,
+                ]
             );
         }
     }
