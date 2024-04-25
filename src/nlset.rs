@@ -154,6 +154,15 @@ impl<const N: usize> From<[Newline; N]> for NewlineSet {
     }
 }
 
+impl FromIterator<Newline> for NewlineSet {
+    fn from_iter<I: IntoIterator<Item = Newline>>(iter: I) -> NewlineSet {
+        iter.into_iter().fold(NewlineSet::new(), |mut nlset, nl| {
+            nlset.insert(nl);
+            nlset
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -289,45 +298,107 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_from_empty_array() {
-        let nlset = NewlineSet::from([Newline::LineFeed; 0]);
-        assert_empty(nlset);
-    }
+    mod from_array {
+        use super::*;
 
-    #[test]
-    fn test_from_singleton_array() {
-        for nl in Newline::iter() {
-            let nlset = NewlineSet::from([nl]);
-            assert_eq!(nlset.len(), 1);
-            assert!(!nlset.is_empty());
-            for nl2 in Newline::iter() {
-                assert_eq!(nlset.contains(nl2), nl == nl2);
+        #[test]
+        fn empty() {
+            let nlset = NewlineSet::from([Newline::LineFeed; 0]);
+            assert_empty(nlset);
+        }
+
+        #[test]
+        fn singleton() {
+            for nl in Newline::iter() {
+                let nlset = NewlineSet::from([nl]);
+                assert_eq!(nlset.len(), 1);
+                assert!(!nlset.is_empty());
+                for nl2 in Newline::iter() {
+                    assert_eq!(nlset.contains(nl2), nl == nl2);
+                }
+            }
+        }
+
+        #[test]
+        fn two_elem() {
+            for nls in Newline::iter().permutations(2) {
+                let [nl1, nl2] = nls.try_into().unwrap();
+                let nlset = NewlineSet::from([nl1, nl2]);
+                assert_eq!(nlset.len(), 2);
+                assert!(!nlset.is_empty());
+                for nl in Newline::iter() {
+                    assert_eq!(nlset.contains(nl), nl == nl1 || nl == nl2);
+                }
+            }
+        }
+
+        #[test]
+        fn duplicated_elem() {
+            for nl in Newline::iter() {
+                let nlset = NewlineSet::from([nl, nl]);
+                assert_eq!(nlset.len(), 1);
+                assert!(!nlset.is_empty());
+                for nl2 in Newline::iter() {
+                    assert_eq!(nlset.contains(nl2), nl == nl2);
+                }
             }
         }
     }
 
-    #[test]
-    fn test_from_two_elem_array() {
-        for nls in Newline::iter().permutations(2) {
-            let [nl1, nl2] = nls.try_into().unwrap();
-            let nlset = NewlineSet::from([nl1, nl2]);
-            assert_eq!(nlset.len(), 2);
+    mod from_iterator {
+        use super::*;
+
+        #[test]
+        fn empty() {
+            let nlset = NewlineSet::from_iter(std::iter::empty());
+            assert_empty(nlset);
+        }
+
+        #[test]
+        fn singleton() {
+            for nl in Newline::iter() {
+                let nlset = NewlineSet::from_iter(std::iter::once(nl));
+                assert_eq!(nlset.len(), 1);
+                assert!(!nlset.is_empty());
+                for nl2 in Newline::iter() {
+                    assert_eq!(nlset.contains(nl2), nl == nl2);
+                }
+            }
+        }
+
+        #[test]
+        fn two_elem() {
+            for nls in Newline::iter().permutations(2) {
+                let nl1 = nls[0];
+                let nl2 = nls[1];
+                let nlset = NewlineSet::from_iter(nls);
+                assert_eq!(nlset.len(), 2);
+                assert!(!nlset.is_empty());
+                for nl in Newline::iter() {
+                    assert_eq!(nlset.contains(nl), nl == nl1 || nl == nl2);
+                }
+            }
+        }
+
+        #[test]
+        fn duplicated_elem() {
+            for nl in Newline::iter() {
+                let nlset = NewlineSet::from_iter([nl, nl]);
+                assert_eq!(nlset.len(), 1);
+                assert!(!nlset.is_empty());
+                for nl2 in Newline::iter() {
+                    assert_eq!(nlset.contains(nl2), nl == nl2);
+                }
+            }
+        }
+
+        #[test]
+        fn all() {
+            let nlset = NewlineSet::from_iter(Newline::iter());
+            assert_eq!(nlset.len(), Newline::COUNT);
             assert!(!nlset.is_empty());
             for nl in Newline::iter() {
-                assert_eq!(nlset.contains(nl), nl == nl1 || nl == nl2);
-            }
-        }
-    }
-
-    #[test]
-    fn test_from_duplicated_elem_array() {
-        for nl in Newline::iter() {
-            let nlset = NewlineSet::from([nl, nl]);
-            assert_eq!(nlset.len(), 1);
-            assert!(!nlset.is_empty());
-            for nl2 in Newline::iter() {
-                assert_eq!(nlset.contains(nl2), nl == nl2);
+                assert!(nlset.contains(nl));
             }
         }
     }
