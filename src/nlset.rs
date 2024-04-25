@@ -111,6 +111,25 @@ impl NewlineSet {
         }
         true
     }
+
+    pub fn is_subset(&self, other: NewlineSet) -> bool {
+        for d in self.pattern.diff(other.pattern) {
+            match d {
+                Diff::Both('\r') => {
+                    if (self.cr && !other.cr) || (self.crlf && !other.crlf) {
+                        return false;
+                    }
+                }
+                Diff::Left(_) => return false,
+                Diff::Right(_) | Diff::Both(_) => (),
+            }
+        }
+        true
+    }
+
+    pub fn is_superset(&self, other: NewlineSet) -> bool {
+        other.is_subset(*self)
+    }
 }
 
 impl fmt::Debug for NewlineSet {
@@ -557,6 +576,22 @@ mod tests {
         }
 
         #[test]
+        fn singleton_vs_more() {
+            let nlset1 = NewlineSet::from(Newline::LineFeed);
+            let nlset2 = NewlineSet::from([Newline::LineFeed, Newline::VerticalTab]);
+            assert!(!nlset1.is_disjoint(nlset2));
+            assert!(!nlset2.is_disjoint(nlset1));
+        }
+
+        #[test]
+        fn singleton_vs_unrelated() {
+            let nlset1 = NewlineSet::from(Newline::FormFeed);
+            let nlset2 = NewlineSet::from([Newline::LineFeed, Newline::VerticalTab]);
+            assert!(nlset1.is_disjoint(nlset2));
+            assert!(nlset2.is_disjoint(nlset1));
+        }
+
+        #[test]
         fn cr_vs_cr() {
             let nlset1 = NewlineSet::from(Newline::CarriageReturn);
             let nlset2 = NewlineSet::from(Newline::CarriageReturn);
@@ -594,6 +629,130 @@ mod tests {
             let nlset2 = NewlineSet::from(Newline::CrLf);
             assert!(!nlset1.is_disjoint(nlset2));
             assert!(!nlset2.is_disjoint(nlset1));
+        }
+    }
+
+    mod subset_superset {
+        use super::*;
+
+        #[test]
+        fn empty_empty() {
+            let nlset1 = NewlineSet::new();
+            let nlset2 = NewlineSet::new();
+            assert!(nlset1.is_subset(nlset2));
+            assert!(nlset2.is_subset(nlset1));
+            assert!(nlset1.is_superset(nlset2));
+            assert!(nlset2.is_superset(nlset1));
+        }
+
+        #[test]
+        fn empty_singleton() {
+            let nlset1 = NewlineSet::new();
+            let nlset2 = NewlineSet::from(Newline::LineFeed);
+            assert!(nlset1.is_subset(nlset2));
+            assert!(!nlset2.is_subset(nlset1));
+            assert!(!nlset1.is_superset(nlset2));
+            assert!(nlset2.is_superset(nlset1));
+        }
+
+        #[test]
+        fn different_singletons() {
+            let nlset1 = NewlineSet::from(Newline::FormFeed);
+            let nlset2 = NewlineSet::from(Newline::LineFeed);
+            assert!(!nlset1.is_subset(nlset2));
+            assert!(!nlset2.is_subset(nlset1));
+            assert!(!nlset1.is_superset(nlset2));
+            assert!(!nlset2.is_superset(nlset1));
+        }
+
+        #[test]
+        fn equal_singletons() {
+            let nlset1 = NewlineSet::from(Newline::FormFeed);
+            let nlset2 = NewlineSet::from(Newline::FormFeed);
+            assert!(nlset1.is_subset(nlset2));
+            assert!(nlset2.is_subset(nlset1));
+            assert!(nlset1.is_superset(nlset2));
+            assert!(nlset2.is_superset(nlset1));
+        }
+
+        #[test]
+        fn overlapping_pairs() {
+            let nlset1 = NewlineSet::from([Newline::LineFeed, Newline::VerticalTab]);
+            let nlset2 = NewlineSet::from([Newline::VerticalTab, Newline::FormFeed]);
+            assert!(!nlset1.is_subset(nlset2));
+            assert!(!nlset2.is_subset(nlset1));
+            assert!(!nlset1.is_superset(nlset2));
+            assert!(!nlset2.is_superset(nlset1));
+        }
+
+        #[test]
+        fn singleton_vs_more() {
+            let nlset1 = NewlineSet::from(Newline::LineFeed);
+            let nlset2 = NewlineSet::from([Newline::LineFeed, Newline::VerticalTab]);
+            assert!(nlset1.is_subset(nlset2));
+            assert!(!nlset2.is_subset(nlset1));
+            assert!(!nlset1.is_superset(nlset2));
+            assert!(nlset2.is_superset(nlset1));
+        }
+
+        #[test]
+        fn singleton_vs_unrelated() {
+            let nlset1 = NewlineSet::from(Newline::FormFeed);
+            let nlset2 = NewlineSet::from([Newline::LineFeed, Newline::VerticalTab]);
+            assert!(!nlset1.is_subset(nlset2));
+            assert!(!nlset2.is_subset(nlset1));
+            assert!(!nlset1.is_superset(nlset2));
+            assert!(!nlset2.is_superset(nlset1));
+        }
+
+        #[test]
+        fn cr_vs_cr() {
+            let nlset1 = NewlineSet::from(Newline::CarriageReturn);
+            let nlset2 = NewlineSet::from(Newline::CarriageReturn);
+            assert!(nlset1.is_subset(nlset2));
+            assert!(nlset2.is_subset(nlset1));
+            assert!(nlset1.is_superset(nlset2));
+            assert!(nlset2.is_superset(nlset1));
+        }
+
+        #[test]
+        fn cr_vs_crlf() {
+            let nlset1 = NewlineSet::from(Newline::CarriageReturn);
+            let nlset2 = NewlineSet::from(Newline::CrLf);
+            assert!(!nlset1.is_subset(nlset2));
+            assert!(!nlset2.is_subset(nlset1));
+            assert!(!nlset1.is_superset(nlset2));
+            assert!(!nlset2.is_superset(nlset1));
+        }
+
+        #[test]
+        fn crlf_vs_crlf() {
+            let nlset1 = NewlineSet::from(Newline::CrLf);
+            let nlset2 = NewlineSet::from(Newline::CrLf);
+            assert!(nlset1.is_subset(nlset2));
+            assert!(nlset2.is_subset(nlset1));
+            assert!(nlset1.is_superset(nlset2));
+            assert!(nlset2.is_superset(nlset1));
+        }
+
+        #[test]
+        fn cr_crlf_vs_cr() {
+            let nlset1 = NewlineSet::from([Newline::CarriageReturn, Newline::CrLf]);
+            let nlset2 = NewlineSet::from(Newline::CarriageReturn);
+            assert!(!nlset1.is_subset(nlset2));
+            assert!(nlset2.is_subset(nlset1));
+            assert!(nlset1.is_superset(nlset2));
+            assert!(!nlset2.is_superset(nlset1));
+        }
+
+        #[test]
+        fn cr_crlf_vs_crlf() {
+            let nlset1 = NewlineSet::from([Newline::CarriageReturn, Newline::CrLf]);
+            let nlset2 = NewlineSet::from(Newline::CrLf);
+            assert!(!nlset1.is_subset(nlset2));
+            assert!(nlset2.is_subset(nlset1));
+            assert!(nlset1.is_superset(nlset2));
+            assert!(!nlset2.is_superset(nlset1));
         }
     }
 }
