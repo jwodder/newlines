@@ -120,6 +120,14 @@ impl NewlineSet {
     }
 }
 
+impl From<Newline> for NewlineSet {
+    fn from(nl: Newline) -> NewlineSet {
+        let mut nlset = NewlineSet::new();
+        nlset.insert(nl);
+        nlset
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -239,6 +247,18 @@ mod tests {
             assert!(!nlset.is_empty());
             for nl in Newline::iter() {
                 assert_eq!(nlset.contains(nl), nl == nl2);
+            }
+        }
+    }
+
+    #[test]
+    fn test_from_newline() {
+        for nl in Newline::iter() {
+            let nlset = NewlineSet::from(nl);
+            assert_eq!(nlset.len(), 1);
+            assert!(!nlset.is_empty());
+            for nl2 in Newline::iter() {
+                assert_eq!(nlset.contains(nl2), nl == nl2);
             }
         }
     }
