@@ -51,21 +51,37 @@ impl NewlineSet {
         }
     }
 
-    // TODO: Return `true` if `nl` was not in `self` before insertion
-    pub fn insert(&mut self, nl: Newline) {
+    // Returns `true` if `nl` was not in `self` before insertion
+    pub fn insert(&mut self, nl: Newline) -> bool {
         let ch = match nl.chartype() {
+            CharType::Char('\r') => {
+                if std::mem::replace(&mut self.cr, true) {
+                    return false;
+                }
+                if self.crlf {
+                    return true;
+                }
+                '\r'
+            }
             CharType::Char(ch) => ch,
-            CharType::CrLf => '\r',
+            CharType::CrLf => {
+                if std::mem::replace(&mut self.crlf, true) {
+                    return false;
+                }
+                if self.cr {
+                    return true;
+                }
+                '\r'
+            }
         };
-        if let Err(i) = self.pattern_buf[..self.pattern_len].binary_search(&ch) {
-            self.pattern_buf[i..].rotate_right(1);
-            self.pattern_buf[i] = ch;
-            self.pattern_len += 1;
-        }
-        if nl == Newline::CarriageReturn {
-            self.cr = true;
-        } else if nl == Newline::CrLf {
-            self.crlf = true;
+        match self.pattern_buf[..self.pattern_len].binary_search(&ch) {
+            Ok(_) => false,
+            Err(i) => {
+                self.pattern_buf[i..].rotate_right(1);
+                self.pattern_buf[i] = ch;
+                self.pattern_len += 1;
+                true
+            }
         }
     }
 
@@ -137,7 +153,21 @@ mod tests {
     fn test_insert_one() {
         for nl in Newline::iter() {
             let mut nlset = NewlineSet::new();
-            nlset.insert(nl);
+            assert!(nlset.insert(nl));
+            assert_eq!(nlset.len(), 1);
+            assert!(!nlset.is_empty());
+            for nl2 in Newline::iter() {
+                assert_eq!(nlset.contains(nl2), nl == nl2);
+            }
+        }
+    }
+
+    #[test]
+    fn test_insert_one_twice() {
+        for nl in Newline::iter() {
+            let mut nlset = NewlineSet::new();
+            assert!(nlset.insert(nl));
+            assert!(!nlset.insert(nl));
             assert_eq!(nlset.len(), 1);
             assert!(!nlset.is_empty());
             for nl2 in Newline::iter() {
@@ -151,8 +181,8 @@ mod tests {
         for nls in Newline::iter().permutations(2) {
             let [nl1, nl2] = nls.try_into().unwrap();
             let mut nlset = NewlineSet::new();
-            nlset.insert(nl1);
-            nlset.insert(nl2);
+            assert!(nlset.insert(nl1));
+            assert!(nlset.insert(nl2));
             assert_eq!(nlset.len(), 2);
             assert!(!nlset.is_empty());
             for nl in Newline::iter() {
@@ -174,7 +204,7 @@ mod tests {
     fn test_insert_and_remove() {
         for nl in Newline::iter() {
             let mut nlset = NewlineSet::new();
-            nlset.insert(nl);
+            assert!(nlset.insert(nl));
             assert!(nlset.remove(nl));
             assert_empty(nlset);
         }
@@ -185,8 +215,8 @@ mod tests {
         for nls in Newline::iter().permutations(2) {
             let [nl1, nl2] = nls.try_into().unwrap();
             let mut nlset = NewlineSet::new();
-            nlset.insert(nl1);
-            nlset.insert(nl2);
+            assert!(nlset.insert(nl1));
+            assert!(nlset.insert(nl2));
             assert!(nlset.remove(nl1));
             assert_eq!(nlset.len(), 1);
             assert!(!nlset.is_empty());
