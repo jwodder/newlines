@@ -114,6 +114,10 @@ impl NewlineSet {
             Err(_) => false,
         }
     }
+
+    pub fn clear(&mut self) {
+        *self = Self::default();
+    }
 }
 
 #[cfg(test)]
@@ -135,7 +139,9 @@ mod tests {
 
     #[test]
     fn test_empty() {
-        let nlset = NewlineSet::new();
+        let mut nlset = NewlineSet::new();
+        assert_empty(nlset);
+        nlset.clear();
         assert_empty(nlset);
     }
 
@@ -167,6 +173,16 @@ mod tests {
     }
 
     #[test]
+    fn test_insert_one_clear() {
+        for nl in Newline::iter() {
+            let mut nlset = NewlineSet::new();
+            assert!(nlset.insert(nl));
+            nlset.clear();
+            assert_empty(nlset);
+        }
+    }
+
+    #[test]
     fn test_insert_two() {
         for nls in Newline::iter().permutations(2) {
             let [nl1, nl2] = nls.try_into().unwrap();
@@ -178,6 +194,17 @@ mod tests {
             for nl in Newline::iter() {
                 assert_eq!(nlset.contains(nl), nl == nl1 || nl == nl2);
             }
+        }
+    }
+
+    #[test]
+    fn test_insert_two_clear() {
+        for (nl1, nl2) in Newline::iter().tuple_combinations() {
+            let mut nlset = NewlineSet::new();
+            assert!(nlset.insert(nl1));
+            assert!(nlset.insert(nl2));
+            nlset.clear();
+            assert_empty(nlset);
         }
     }
 
