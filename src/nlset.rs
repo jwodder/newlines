@@ -21,6 +21,83 @@ pub struct NewlineSet {
 }
 
 impl NewlineSet {
+    // LF + CR LF
+    pub const RUST: NewlineSet = NewlineSet {
+        pattern: CharSet {
+            data: ['\n', '\r', '\0', '\0', '\0', '\0', '\0'],
+            len: 2,
+        },
+        cr: false,
+        crlf: true,
+    };
+
+    // LF + CR LF + CR
+    pub const ASCII: NewlineSet = NewlineSet {
+        pattern: CharSet {
+            data: ['\n', '\r', '\0', '\0', '\0', '\0', '\0'],
+            len: 2,
+        },
+        cr: true,
+        crlf: true,
+    };
+
+    // LF + CR LF + CR + NEL ("newline function" defined in §5.8 of the Unicode
+    // Standard)
+    pub const NLF: NewlineSet = NewlineSet {
+        pattern: CharSet {
+            data: ['\n', '\r', '\u{0085}', '\0', '\0', '\0', '\0'],
+            len: 3,
+        },
+        cr: true,
+        crlf: true,
+    };
+
+    // LF + CR LF + CR + NEL + FF + LineSep + ParaSep — Unicode's recommended
+    // terminators when doing a "readline" operation, as per §5.8 of the
+    // Unicode Standard
+    pub const READLINE: NewlineSet = NewlineSet {
+        pattern: CharSet {
+            data: ['\n', '\x0C', '\r', '\u{0085}', '\u{2028}', '\u{2029}', '\0'],
+            len: 6,
+        },
+        cr: true,
+        crlf: true,
+    };
+
+    // READLINE | VerticalTab
+    // Everything considered a newline by Unicode.  This will differ from ALL
+    // if Python's splitlines()-specific endings are ever added to the library.
+    pub const UNICODE: NewlineSet = NewlineSet {
+        pattern: CharSet {
+            data: [
+                '\n', '\x0B', '\x0C', '\r', '\u{0085}', '\u{2028}', '\u{2029}',
+            ],
+            len: 7,
+        },
+        cr: true,
+        crlf: true,
+    };
+
+    pub const ALL: NewlineSet = NewlineSet {
+        pattern: CharSet {
+            data: [
+                '\n', '\x0B', '\x0C', '\r', '\u{0085}', '\u{2028}', '\u{2029}',
+            ],
+            len: 7,
+        },
+        cr: true,
+        crlf: true,
+    };
+
+    pub const EMPTY: NewlineSet = NewlineSet {
+        pattern: CharSet {
+            data: ['\0'; 7],
+            len: 0,
+        },
+        cr: false,
+        crlf: false,
+    };
+
     pub fn new() -> NewlineSet {
         NewlineSet::default()
     }
@@ -753,6 +830,82 @@ mod tests {
             assert!(nlset2.is_subset(nlset1));
             assert!(nlset1.is_superset(nlset2));
             assert!(!nlset2.is_superset(nlset1));
+        }
+    }
+
+    mod consts {
+        use super::*;
+
+        #[test]
+        fn rust() {
+            assert_eq!(
+                NewlineSet::RUST,
+                NewlineSet::from([Newline::LineFeed, Newline::CrLf])
+            );
+        }
+
+        #[test]
+        fn ascii() {
+            assert_eq!(
+                NewlineSet::ASCII,
+                NewlineSet::from([Newline::LineFeed, Newline::CarriageReturn, Newline::CrLf])
+            );
+        }
+
+        #[test]
+        fn nlf() {
+            assert_eq!(
+                NewlineSet::NLF,
+                NewlineSet::from([
+                    Newline::LineFeed,
+                    Newline::CarriageReturn,
+                    Newline::CrLf,
+                    Newline::NextLine
+                ])
+            );
+        }
+
+        #[test]
+        fn readline() {
+            assert_eq!(
+                NewlineSet::READLINE,
+                NewlineSet::from([
+                    Newline::LineFeed,
+                    Newline::FormFeed,
+                    Newline::CarriageReturn,
+                    Newline::CrLf,
+                    Newline::NextLine,
+                    Newline::LineSeparator,
+                    Newline::ParagraphSeparator
+                ])
+            );
+        }
+
+        #[test]
+        fn unicode() {
+            assert_eq!(
+                NewlineSet::UNICODE,
+                NewlineSet::from([
+                    Newline::LineFeed,
+                    Newline::VerticalTab,
+                    Newline::FormFeed,
+                    Newline::CarriageReturn,
+                    Newline::CrLf,
+                    Newline::NextLine,
+                    Newline::LineSeparator,
+                    Newline::ParagraphSeparator
+                ])
+            );
+        }
+
+        #[test]
+        fn all() {
+            assert_eq!(NewlineSet::ALL, NewlineSet::from_iter(Newline::iter()));
+        }
+
+        #[test]
+        fn empty() {
+            assert_eq!(NewlineSet::EMPTY, NewlineSet::new());
         }
     }
 }

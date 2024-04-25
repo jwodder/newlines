@@ -11,10 +11,10 @@ pub(crate) struct CharSet {
     /// The first `len` elements of `data` are the elements of the `CharSet`,
     /// stored in strictly ascending order.  Any remaining elements are set to
     /// `'\0'`.
-    data: [char; Newline::COUNT - 1],
+    pub(crate) data: [char; Newline::COUNT - 1],
 
     /// The number of items in the `CharSet`.
-    len: usize,
+    pub(crate) len: usize,
 }
 
 impl CharSet {
