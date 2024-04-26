@@ -4,7 +4,7 @@ use crate::nl::Newline;
 use crate::nlset::NewlineSet;
 use std::iter::FusedIterator;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IntoIter(Char2Newline<CharSetIter>);
 
 impl IntoIter {

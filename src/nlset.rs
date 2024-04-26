@@ -1,5 +1,5 @@
 use super::charset::{CharSet, Diff};
-use super::iter::IntoIter;
+use super::iter::{IntoIter, Union};
 use super::nl::{CharType, Newline};
 use std::fmt;
 
@@ -207,6 +207,10 @@ impl NewlineSet {
     pub fn is_superset(&self, other: NewlineSet) -> bool {
         other.is_subset(*self)
     }
+
+    pub fn union(self, other: NewlineSet) -> Union {
+        Union::new(self, other)
+    }
 }
 
 impl fmt::Debug for NewlineSet {
@@ -278,6 +282,7 @@ impl IntoIterator for NewlineSet {
 mod tests {
     use super::*;
     use itertools::Itertools;
+    use rstest::rstest;
 
     fn assert_empty(nlset: NewlineSet) {
         assert_eq!(nlset.len(), 0);
@@ -907,5 +912,50 @@ mod tests {
         fn empty() {
             assert_eq!(NewlineSet::EMPTY, NewlineSet::new());
         }
+    }
+
+    #[rstest]
+    #[case(Vec::new(), Vec::new(), Vec::new())]
+    #[case(Vec::new(), vec![Newline::LineFeed], vec![Newline::LineFeed])]
+    #[case(
+        Vec::new(),
+        vec![Newline::CarriageReturn],
+        vec![Newline::CarriageReturn],
+    )]
+    #[case(
+        Vec::new(),
+        vec![Newline::CarriageReturn, Newline::CrLf],
+        vec![Newline::CarriageReturn, Newline::CrLf],
+    )]
+    #[case(Vec::new(), vec![Newline::CrLf], vec![Newline::CrLf])]
+    #[case(
+        vec![Newline::CarriageReturn],
+        vec![Newline::CrLf],
+        vec![Newline::CarriageReturn, Newline::CrLf],
+    )]
+    #[case(
+        vec![Newline::LineFeed],
+        vec![Newline::CarriageReturn],
+        vec![Newline::LineFeed, Newline::CarriageReturn],
+    )]
+    #[case(
+        vec![Newline::LineFeed, Newline::FormFeed],
+        vec![Newline::FormFeed, Newline::VerticalTab],
+        vec![Newline::LineFeed, Newline::VerticalTab, Newline::FormFeed],
+    )]
+    #[case(
+        Newline::iter().collect(),
+        vec![Newline::NextLine],
+        Newline::iter().collect(),
+    )]
+    fn test_union(
+        #[case] left: Vec<Newline>,
+        #[case] right: Vec<Newline>,
+        #[case] both: Vec<Newline>,
+    ) {
+        let nlset1 = NewlineSet::from_iter(left);
+        let nlset2 = NewlineSet::from_iter(right);
+        assert_eq!(nlset1.union(nlset2).collect_vec(), both);
+        assert_eq!(nlset2.union(nlset1).collect_vec(), both);
     }
 }
