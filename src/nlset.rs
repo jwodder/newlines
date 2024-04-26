@@ -1,5 +1,5 @@
 use super::charset::{CharSet, Diff};
-use super::iter::{IntoIter, Union};
+use super::iter::{Intersection, IntoIter, Union};
 use super::nl::{CharType, Newline};
 use std::fmt;
 
@@ -210,6 +210,10 @@ impl NewlineSet {
 
     pub fn union(self, other: NewlineSet) -> Union {
         Union::new(self, other)
+    }
+
+    pub fn intersection(self, other: NewlineSet) -> Intersection {
+        Intersection::new(self, other)
     }
 }
 
@@ -957,5 +961,54 @@ mod tests {
         let nlset2 = NewlineSet::from_iter(right);
         assert_eq!(nlset1.union(nlset2).collect_vec(), both);
         assert_eq!(nlset2.union(nlset1).collect_vec(), both);
+    }
+
+    #[rstest]
+    #[case(Vec::new(), Vec::new(), Vec::new())]
+    #[case(Vec::new(), vec![Newline::LineFeed], Vec::new())]
+    #[case(Vec::new(), vec![Newline::CarriageReturn], Vec::new())]
+    #[case(
+        Vec::new(),
+        vec![Newline::CarriageReturn, Newline::CrLf],
+        Vec::new(),
+    )]
+    #[case(
+        vec![Newline::CarriageReturn],
+        vec![Newline::CarriageReturn, Newline::CrLf],
+        vec![Newline::CarriageReturn],
+    )]
+    #[case(
+        vec![Newline::CrLf],
+        vec![Newline::CarriageReturn, Newline::CrLf],
+        vec![Newline::CrLf],
+    )]
+    #[case(
+        vec![Newline::CarriageReturn, Newline::CrLf],
+        vec![Newline::CarriageReturn, Newline::CrLf],
+        vec![Newline::CarriageReturn, Newline::CrLf],
+    )]
+    #[case(Vec::new(), vec![Newline::CrLf], Vec::new())]
+    #[case(vec![Newline::CarriageReturn], vec![Newline::CrLf], Vec::new())]
+    #[case(vec![Newline::LineFeed], vec![Newline::CarriageReturn], Vec::new())]
+    #[case(vec![Newline::LineFeed], vec![Newline::LineFeed], vec![Newline::LineFeed])]
+    #[case(
+        vec![Newline::LineFeed, Newline::FormFeed],
+        vec![Newline::FormFeed, Newline::VerticalTab],
+        vec![Newline::FormFeed],
+    )]
+    #[case(
+        Newline::iter().collect(),
+        vec![Newline::NextLine],
+        vec![Newline::NextLine],
+    )]
+    fn test_intersection(
+        #[case] left: Vec<Newline>,
+        #[case] right: Vec<Newline>,
+        #[case] both: Vec<Newline>,
+    ) {
+        let nlset1 = NewlineSet::from_iter(left);
+        let nlset2 = NewlineSet::from_iter(right);
+        assert_eq!(nlset1.intersection(nlset2).collect_vec(), both);
+        assert_eq!(nlset2.intersection(nlset1).collect_vec(), both);
     }
 }

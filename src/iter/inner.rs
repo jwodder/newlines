@@ -28,26 +28,31 @@ impl<I: Iterator<Item = char>> Iterator for Char2Newline<I> {
         if let Some(nl) = self.queued.take() {
             return Some(nl);
         }
-        let Some(ch) = self.inner.next() else {
-            return std::mem::take(&mut self.queued_back);
-        };
-        match (ch, self.cr, self.crlf) {
-            ('\r', true, crlf) => {
-                if crlf {
-                    self.queued = Some(Newline::CrLf);
-                    // So that size_hint() won't add 1:
-                    self.cr = false;
+        loop {
+            let Some(ch) = self.inner.next() else {
+                return std::mem::take(&mut self.queued_back);
+            };
+            match (ch, self.cr, self.crlf) {
+                ('\r', true, crlf) => {
+                    if crlf {
+                        self.queued = Some(Newline::CrLf);
+                        // So that size_hint() won't add 1:
+                        self.cr = false;
+                    }
+                    return Some(Newline::CarriageReturn);
                 }
-                Some(Newline::CarriageReturn)
-            }
-            ('\r', false, true) => Some(Newline::CrLf),
-            (ch, _, _) => {
-                let nl = Newline::try_from(ch).ok();
-                debug_assert!(
-                    nl.is_some(),
-                    "Char from inner iterator should map to Newline"
-                );
-                nl
+                ('\r', false, true) => return Some(Newline::CrLf),
+                // ↓ This can happen when, for example, computing
+                // ↓ `Intersection` for {CR} and {CRLF}
+                ('\r', false, false) => (), // Go to next element of inner iter
+                (ch, _, _) => {
+                    let nl = Newline::try_from(ch).ok();
+                    debug_assert!(
+                        nl.is_some(),
+                        "Char from inner iterator should map to Newline"
+                    );
+                    return nl;
+                }
             }
         }
     }
