@@ -1,5 +1,5 @@
 use super::charset::{CharSet, Diff};
-use super::iter::{Intersection, IntoIter, Union};
+use super::iter::{Intersection, IntoIter, SymmetricDifference, Union};
 use super::nl::{CharType, Newline};
 use std::fmt;
 
@@ -214,6 +214,10 @@ impl NewlineSet {
 
     pub fn intersection(self, other: NewlineSet) -> Intersection {
         Intersection::new(self, other)
+    }
+
+    pub fn symmetric_difference(self, other: NewlineSet) -> SymmetricDifference {
+        SymmetricDifference::new(self, other)
     }
 }
 
@@ -1010,5 +1014,71 @@ mod tests {
         let nlset2 = NewlineSet::from_iter(right);
         assert_eq!(nlset1.intersection(nlset2).collect_vec(), both);
         assert_eq!(nlset2.intersection(nlset1).collect_vec(), both);
+    }
+
+    #[rstest]
+    #[case(Vec::new(), Vec::new(), Vec::new())]
+    #[case(Vec::new(), vec![Newline::LineFeed], vec![Newline::LineFeed])]
+    #[case(
+        vec![Newline::LineFeed],
+        vec![Newline::NextLine],
+        vec![Newline::LineFeed, Newline::NextLine],
+    )]
+    #[case(
+        Vec::new(),
+        vec![Newline::CarriageReturn],
+        vec![Newline::CarriageReturn],
+    )]
+    #[case(Vec::new(), vec![Newline::CrLf], vec![Newline::CrLf])]
+    #[case(
+        vec![Newline::CarriageReturn],
+        vec![Newline::CrLf],
+        vec![Newline::CarriageReturn, Newline::CrLf],
+    )]
+    #[case(
+        Vec::new(),
+        vec![Newline::CarriageReturn, Newline::CrLf],
+        vec![Newline::CarriageReturn, Newline::CrLf],
+    )]
+    #[case(
+        vec![Newline::CarriageReturn],
+        vec![Newline::CarriageReturn, Newline::CrLf],
+        vec![Newline::CrLf],
+    )]
+    #[case(
+        vec![Newline::CrLf],
+        vec![Newline::CarriageReturn, Newline::CrLf],
+        vec![Newline::CarriageReturn],
+    )]
+    #[case(
+        vec![Newline::CarriageReturn, Newline::CrLf],
+        vec![Newline::CarriageReturn, Newline::CrLf],
+        Vec::new(),
+    )]
+    #[case(
+        vec![Newline::LineFeed],
+        vec![Newline::CarriageReturn],
+        vec![Newline::LineFeed, Newline::CarriageReturn],
+    )]
+    #[case(vec![Newline::LineFeed], vec![Newline::LineFeed], Vec::new())]
+    #[case(
+        vec![Newline::LineFeed, Newline::FormFeed],
+        vec![Newline::FormFeed, Newline::VerticalTab],
+        vec![Newline::LineFeed, Newline::VerticalTab],
+    )]
+    #[case(
+        Newline::iter().collect(),
+        vec![Newline::NextLine],
+        Newline::iter().filter(|&nl| nl != Newline::NextLine).collect(),
+    )]
+    fn test_symmetric_difference(
+        #[case] left: Vec<Newline>,
+        #[case] right: Vec<Newline>,
+        #[case] both: Vec<Newline>,
+    ) {
+        let nlset1 = NewlineSet::from_iter(left);
+        let nlset2 = NewlineSet::from_iter(right);
+        assert_eq!(nlset1.symmetric_difference(nlset2).collect_vec(), both);
+        assert_eq!(nlset2.symmetric_difference(nlset1).collect_vec(), both);
     }
 }
