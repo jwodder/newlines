@@ -232,6 +232,19 @@ impl NewlineSet {
     }
 }
 
+impl Ord for NewlineSet {
+    // Same ordering logic as BTreeSet
+    fn cmp(&self, other: &NewlineSet) -> std::cmp::Ordering {
+        self.iter().cmp(other.iter())
+    }
+}
+
+impl PartialOrd for NewlineSet {
+    fn partial_cmp(&self, other: &NewlineSet) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 impl fmt::Debug for NewlineSet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_set().entries(*self).finish()
