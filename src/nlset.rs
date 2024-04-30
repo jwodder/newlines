@@ -242,6 +242,18 @@ impl<T: Into<NewlineSet>> ops::BitAnd<T> for NewlineSet {
     }
 }
 
+impl<T: Into<NewlineSet>> ops::BitAnd<T> for Newline {
+    type Output = NewlineSet;
+
+    fn bitand(self, rhs: T) -> NewlineSet {
+        if rhs.into().contains(self) {
+            self.into()
+        } else {
+            NewlineSet::new()
+        }
+    }
+}
+
 impl<T: Into<NewlineSet>> ops::BitAndAssign<T> for NewlineSet {
     fn bitand_assign(&mut self, rhs: T) {
         *self = *self & rhs;
@@ -253,6 +265,16 @@ impl<T: Into<NewlineSet>> ops::BitOr<T> for NewlineSet {
 
     fn bitor(self, rhs: T) -> NewlineSet {
         self.union(rhs.into()).into_newline_set()
+    }
+}
+
+impl<T: Into<NewlineSet>> ops::BitOr<T> for Newline {
+    type Output = NewlineSet;
+
+    fn bitor(self, rhs: T) -> NewlineSet {
+        let mut nlset = rhs.into();
+        nlset.insert(self);
+        nlset
     }
 }
 
@@ -270,6 +292,18 @@ impl<T: Into<NewlineSet>> ops::BitXor<T> for NewlineSet {
     }
 }
 
+impl<T: Into<NewlineSet>> ops::BitXor<T> for Newline {
+    type Output = NewlineSet;
+
+    fn bitxor(self, rhs: T) -> NewlineSet {
+        let mut nlset = rhs.into();
+        if !nlset.remove(self) {
+            nlset.insert(self);
+        }
+        nlset
+    }
+}
+
 impl<T: Into<NewlineSet>> ops::BitXorAssign<T> for NewlineSet {
     fn bitxor_assign(&mut self, rhs: T) {
         *self = *self ^ rhs;
@@ -281,6 +315,18 @@ impl<T: Into<NewlineSet>> ops::Sub<T> for NewlineSet {
 
     fn sub(self, rhs: T) -> NewlineSet {
         self.difference(rhs.into()).into_newline_set()
+    }
+}
+
+impl<T: Into<NewlineSet>> ops::Sub<T> for Newline {
+    type Output = NewlineSet;
+
+    fn sub(self, rhs: T) -> NewlineSet {
+        if rhs.into().contains(self) {
+            NewlineSet::new()
+        } else {
+            self.into()
+        }
     }
 }
 
@@ -1058,16 +1104,27 @@ mod tests {
         Newline::NextLine,
         Newline::iter().collect(),
     )]
-    fn nlset_bitor_nl(
-        #[case] left: Vec<Newline>,
-        #[case] right: Newline,
-        #[case] both: Vec<Newline>,
-    ) {
+    fn nlset_bitor_nl(#[case] left: Vec<Newline>, #[case] nl: Newline, #[case] both: Vec<Newline>) {
         let mut nlset = NewlineSet::from_iter(left);
         let combo = NewlineSet::from_iter(both);
-        assert_eq!(nlset | right, combo);
-        nlset |= right;
+        assert_eq!(nlset | nl, combo);
+        assert_eq!(nl | nlset, combo);
+        nlset |= nl;
         assert_eq!(nlset, combo);
+    }
+
+    #[rstest]
+    #[case(Newline::LineFeed, Newline::LineFeed, vec![Newline::LineFeed])]
+    #[case(Newline::LineFeed, Newline::CarriageReturn, vec![Newline::LineFeed, Newline::CarriageReturn])]
+    #[case(Newline::LineFeed, Newline::CrLf, vec![Newline::LineFeed, Newline::CrLf])]
+    #[case(Newline::CrLf, Newline::CrLf, vec![Newline::CrLf])]
+    #[case(Newline::CarriageReturn, Newline::CarriageReturn, vec![Newline::CarriageReturn])]
+    #[case(Newline::CarriageReturn, Newline::CrLf, vec![Newline::CarriageReturn, Newline::CrLf])]
+    #[case(Newline::LineFeed, Newline::NextLine, vec![Newline::LineFeed, Newline::NextLine])]
+    fn nl_bitor_nl(#[case] nl1: Newline, #[case] nl2: Newline, #[case] both: Vec<Newline>) {
+        let combo = NewlineSet::from_iter(both);
+        assert_eq!(nl1 | nl2, combo);
+        assert_eq!(nl2 | nl1, combo);
     }
 
     #[rstest]
@@ -1152,14 +1209,29 @@ mod tests {
     )]
     fn nlset_bitand_nl(
         #[case] left: Vec<Newline>,
-        #[case] right: Newline,
+        #[case] nl: Newline,
         #[case] both: Vec<Newline>,
     ) {
         let mut nlset = NewlineSet::from_iter(left);
         let combo = NewlineSet::from_iter(both);
-        assert_eq!(nlset & right, combo);
-        nlset &= right;
+        assert_eq!(nlset & nl, combo);
+        assert_eq!(nl & nlset, combo);
+        nlset &= nl;
         assert_eq!(nlset, combo);
+    }
+
+    #[rstest]
+    #[case(Newline::LineFeed, Newline::LineFeed, vec![Newline::LineFeed])]
+    #[case(Newline::LineFeed, Newline::CarriageReturn, Vec::new())]
+    #[case(Newline::LineFeed, Newline::CrLf, Vec::new())]
+    #[case(Newline::CrLf, Newline::CrLf, vec![Newline::CrLf])]
+    #[case(Newline::CarriageReturn, Newline::CarriageReturn, vec![Newline::CarriageReturn])]
+    #[case(Newline::CarriageReturn, Newline::CrLf, Vec::new())]
+    #[case(Newline::LineFeed, Newline::NextLine, Vec::new())]
+    fn nl_bitand_nl(#[case] nl1: Newline, #[case] nl2: Newline, #[case] both: Vec<Newline>) {
+        let combo = NewlineSet::from_iter(both);
+        assert_eq!(nl1 & nl2, combo);
+        assert_eq!(nl2 & nl1, combo);
     }
 
     #[rstest]
@@ -1269,14 +1341,29 @@ mod tests {
     )]
     fn nlset_bitxor_nl(
         #[case] left: Vec<Newline>,
-        #[case] right: Newline,
+        #[case] nl: Newline,
         #[case] both: Vec<Newline>,
     ) {
         let mut nlset = NewlineSet::from_iter(left);
         let combo = NewlineSet::from_iter(both);
-        assert_eq!(nlset ^ right, combo);
-        nlset ^= right;
+        assert_eq!(nlset ^ nl, combo);
+        assert_eq!(nl ^ nlset, combo);
+        nlset ^= nl;
         assert_eq!(nlset, combo);
+    }
+
+    #[rstest]
+    #[case(Newline::LineFeed, Newline::LineFeed, Vec::new())]
+    #[case(Newline::LineFeed, Newline::CarriageReturn, vec![Newline::LineFeed, Newline::CarriageReturn])]
+    #[case(Newline::LineFeed, Newline::CrLf, vec![Newline::LineFeed, Newline::CrLf])]
+    #[case(Newline::CrLf, Newline::CrLf, Vec::new())]
+    #[case(Newline::CarriageReturn, Newline::CarriageReturn, Vec::new())]
+    #[case(Newline::CarriageReturn, Newline::CrLf, vec![Newline::CarriageReturn, Newline::CrLf])]
+    #[case(Newline::LineFeed, Newline::NextLine, vec![Newline::LineFeed, Newline::NextLine])]
+    fn nl_bitxor_nl(#[case] nl1: Newline, #[case] nl2: Newline, #[case] both: Vec<Newline>) {
+        let combo = NewlineSet::from_iter(both);
+        assert_eq!(nl1 ^ nl2, combo);
+        assert_eq!(nl2 ^ nl1, combo);
     }
 
     #[rstest]
@@ -1413,15 +1500,24 @@ mod tests {
         Newline::NextLine,
         Newline::iter().filter(|&nl| nl != Newline::NextLine).collect(),
     )]
-    fn nlset_sub_nl(
-        #[case] left: Vec<Newline>,
-        #[case] right: Newline,
-        #[case] both: Vec<Newline>,
-    ) {
+    fn nlset_sub_nl(#[case] left: Vec<Newline>, #[case] nl: Newline, #[case] both: Vec<Newline>) {
         let mut nlset = NewlineSet::from_iter(left);
         let combo = NewlineSet::from_iter(both);
-        assert_eq!(nlset - right, combo);
-        nlset -= right;
+        assert_eq!(nlset - nl, combo);
+        nlset -= nl;
         assert_eq!(nlset, combo);
+    }
+
+    #[rstest]
+    #[case(Newline::LineFeed, Newline::LineFeed, Vec::new())]
+    #[case(Newline::LineFeed, Newline::CarriageReturn, vec![Newline::LineFeed])]
+    #[case(Newline::LineFeed, Newline::CrLf, vec![Newline::LineFeed])]
+    #[case(Newline::CrLf, Newline::CrLf, Vec::new())]
+    #[case(Newline::CarriageReturn, Newline::CarriageReturn, Vec::new())]
+    #[case(Newline::CarriageReturn, Newline::CrLf, vec![Newline::CarriageReturn])]
+    #[case(Newline::LineFeed, Newline::NextLine, vec![Newline::LineFeed])]
+    fn nl_sub_nl(#[case] nl1: Newline, #[case] nl2: Newline, #[case] both: Vec<Newline>) {
+        let combo = NewlineSet::from_iter(both);
+        assert_eq!(nl1 - nl2, combo);
     }
 }
