@@ -1,4 +1,5 @@
 use super::inner::Char2Newline;
+use super::AscendingNewlines;
 use crate::charset::CharSetIter;
 use crate::nl::Newline;
 use crate::nlset::NewlineSet;
@@ -38,6 +39,8 @@ impl DoubleEndedIterator for IntoIter {
         self.0.next_back()
     }
 }
+
+impl AscendingNewlines for IntoIter {}
 
 #[cfg(test)]
 mod tests {

@@ -1,4 +1,5 @@
 use super::inner::Char2Newline;
+use super::AscendingNewlines;
 use crate::charset::{CharSet, CharSetDiff, Diff};
 use crate::nl::Newline;
 use crate::nlset::NewlineSet;
@@ -32,6 +33,8 @@ impl Iterator for Difference {
 impl FusedIterator for Difference {}
 
 impl ExactSizeIterator for Difference {}
+
+impl AscendingNewlines for Difference {}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct InnerDifference(CharSetDiff);

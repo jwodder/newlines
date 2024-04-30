@@ -1,4 +1,5 @@
 use super::inner::Char2Newline;
+use super::AscendingNewlines;
 use crate::charset::{CharSet, CharSetDiff, Diff};
 use crate::nl::Newline;
 use crate::nlset::NewlineSet;
@@ -32,6 +33,8 @@ impl Iterator for Intersection {
 impl FusedIterator for Intersection {}
 
 impl ExactSizeIterator for Intersection {}
+
+impl AscendingNewlines for Intersection {}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct InnerIntersection(CharSetDiff);
