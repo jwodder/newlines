@@ -226,6 +226,10 @@ impl NewlineSet {
     pub fn difference(self, other: NewlineSet) -> Difference {
         Difference::new(self, other)
     }
+
+    pub fn iter(&self) -> IntoIter {
+        self.into_iter()
+    }
 }
 
 impl fmt::Debug for NewlineSet {
@@ -392,6 +396,15 @@ impl IntoIterator for NewlineSet {
 
     fn into_iter(self) -> IntoIter {
         IntoIter::new(self)
+    }
+}
+
+impl IntoIterator for &NewlineSet {
+    type Item = Newline;
+    type IntoIter = IntoIter;
+
+    fn into_iter(self) -> IntoIter {
+        IntoIter::new(*self)
     }
 }
 
