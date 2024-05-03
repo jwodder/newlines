@@ -13,13 +13,13 @@ pub struct NewlineSet {
     /// `&[char]` pattern used to search strings for newlines.
     ///
     /// Note that `'\r'` will be in `pattern` if either or both of
-    /// CarriageReturn and CrLf are in the `NewlineSet`.
+    /// `CarriageReturn` and `CrLf` are in the `NewlineSet`.
     pub(crate) pattern: CharSet,
 
-    /// Whether CarriageReturn is in the set
+    /// Whether `CarriageReturn` is in the set
     pub(crate) cr: bool,
 
-    /// Whether CrLf is in the set
+    /// Whether `CrLf` is in the set
     pub(crate) crlf: bool,
 }
 
