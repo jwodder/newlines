@@ -1,6 +1,6 @@
 use super::charset::{CharSet, Diff};
 use super::iter::{
-    AscendingNewlines, Difference, Intersection, IntoIter, SymmetricDifference, Union,
+    AscendingNewlines, Complement, Difference, Intersection, IntoIter, SymmetricDifference, Union,
 };
 use super::nl::{CharType, Newline};
 use std::fmt;
@@ -227,6 +227,10 @@ impl NewlineSet {
         Difference::new(self, other)
     }
 
+    pub fn complement(self) -> Complement {
+        Complement::new(self)
+    }
+
     pub fn iter(&self) -> IntoIter {
         self.into_iter()
     }
@@ -350,6 +354,24 @@ impl<T: Into<NewlineSet>> ops::Sub<T> for Newline {
 impl<T: Into<NewlineSet>> ops::SubAssign<T> for NewlineSet {
     fn sub_assign(&mut self, rhs: T) {
         *self = *self - rhs;
+    }
+}
+
+impl ops::Not for NewlineSet {
+    type Output = NewlineSet;
+
+    fn not(self) -> NewlineSet {
+        self.complement().into_newline_set()
+    }
+}
+
+impl ops::Not for Newline {
+    type Output = NewlineSet;
+
+    fn not(self) -> NewlineSet {
+        let mut nlset = NewlineSet::ALL;
+        nlset.remove(self);
+        nlset
     }
 }
 
@@ -1545,5 +1567,46 @@ mod tests {
     fn nl_sub_nl(#[case] nl1: Newline, #[case] nl2: Newline, #[case] both: Vec<Newline>) {
         let combo = NewlineSet::from_iter(both);
         assert_eq!(nl1 - nl2, combo);
+    }
+
+    #[rstest]
+    #[case(Vec::new(), Newline::iter().collect())]
+    #[case(Newline::iter().collect(), Vec::new())]
+    #[case(
+        vec![Newline::CarriageReturn, Newline::CrLf],
+        vec![
+            Newline::LineFeed,
+            Newline::VerticalTab,
+            Newline::FormFeed,
+            Newline::NextLine,
+            Newline::LineSeparator,
+            Newline::ParagraphSeparator,
+        ],
+    )]
+    #[case(
+        vec![Newline::CarriageReturn, Newline::VerticalTab, Newline::FormFeed],
+        vec![
+            Newline::LineFeed,
+            Newline::CrLf,
+            Newline::NextLine,
+            Newline::LineSeparator,
+            Newline::ParagraphSeparator,
+        ],
+    )]
+    fn test_complement(#[case] nlset: Vec<Newline>, #[case] comp: Vec<Newline>) {
+        let nlset = NewlineSet::from_iter(nlset);
+        assert_eq!(nlset.complement().collect_vec(), comp);
+        let comp = NewlineSet::from_iter(comp);
+        assert_eq!(!nlset, comp);
+    }
+
+    #[test]
+    fn not_newline() {
+        for nl in Newline::iter() {
+            let not = !nl;
+            for nl2 in Newline::iter() {
+                assert_eq!(not.contains(nl2), nl != nl2);
+            }
+        }
     }
 }

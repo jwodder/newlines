@@ -37,10 +37,10 @@ impl ExactSizeIterator for Difference {}
 impl AscendingNewlines for Difference {}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct InnerDifference(CharSetDiff);
+pub(super) struct InnerDifference(CharSetDiff);
 
 impl InnerDifference {
-    fn new(cs1: CharSet, cs2: CharSet) -> InnerDifference {
+    pub(super) fn new(cs1: CharSet, cs2: CharSet) -> InnerDifference {
         InnerDifference(cs1.diff(cs2))
     }
 }
