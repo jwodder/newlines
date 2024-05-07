@@ -113,6 +113,10 @@ impl NewlineSet {
         self.pattern.is_empty()
     }
 
+    pub(crate) fn pattern(&self) -> &[char] {
+        self.pattern.as_slice()
+    }
+
     pub fn contains(&self, nl: Newline) -> bool {
         match nl.chartype() {
             CharType::Char('\r') => self.cr,
