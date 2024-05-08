@@ -450,6 +450,13 @@ mod tests {
         after: "bar",
     }))]
     #[case(Newline::CrLf.into(), "foo\rbar", None)]
+    #[case(Newline::LineSeparator.into(), "foo\u{2028}bar", Some(Match {
+        start: 3,
+        end: 6,
+        newline: Newline::LineSeparator,
+        before: "foo",
+        after: "bar",
+    }))]
     fn test_newline_set_rsearch(
         #[case] nlset: NewlineSet,
         #[case] s: &'static str,
