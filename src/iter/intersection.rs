@@ -5,6 +5,11 @@ use crate::nl::Newline;
 use crate::nlset::NewlineSet;
 use std::iter::FusedIterator;
 
+/// Iterator of all [`Newline`] variants in both of a given pair of
+/// [`NewlineSet`]s.  Values are unique and yielded in ascending order.
+///
+/// An `Intersection` instance is acquired by calling
+/// [`NewlineSet::intersection()`].
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Intersection(Char2Newline<InnerIntersection>);
 

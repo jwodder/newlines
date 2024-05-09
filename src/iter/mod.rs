@@ -1,3 +1,4 @@
+//! Iterator types
 mod complement;
 mod diff;
 mod inner;
@@ -14,6 +15,8 @@ pub use self::union::*;
 use crate::nl::{CharType, Newline};
 use crate::nlset::NewlineSet;
 
+/// Trait for iterators that yield `Newline` values without duplicates in
+/// ascending order
 pub(crate) trait AscendingNewlines: Iterator<Item = Newline> + Sized {
     fn into_newline_set(self) -> NewlineSet {
         let mut nlset = NewlineSet::new();

@@ -5,6 +5,11 @@ use crate::nl::Newline;
 use crate::nlset::NewlineSet;
 use std::iter::FusedIterator;
 
+/// Iterator of all [`Newline`] variants in one [`NewlineSet`] but not another.
+/// Values are unique and yielded in ascending order.
+///
+/// A `Difference` instance is acquired by calling
+/// [`NewlineSet::difference()`].
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Difference(Char2Newline<InnerDifference>);
 

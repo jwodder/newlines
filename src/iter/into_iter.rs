@@ -5,6 +5,11 @@ use crate::nl::Newline;
 use crate::nlset::NewlineSet;
 use std::iter::FusedIterator;
 
+/// Iterator of all [`Newline`] variants in a given [`NewlineSet`].  Values are
+/// unique and yielded in ascending order.
+///
+/// An `IntoIter` instance is acquired by calling
+/// [`NewlineSet::into_iter()`] or [`NewlineSet::iter()`].
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IntoIter(Char2Newline<CharSetIter>);
 

@@ -5,6 +5,11 @@ use crate::nl::Newline;
 use crate::nlset::NewlineSet;
 use std::iter::FusedIterator;
 
+/// Iterator of all [`Newline`] variants in one but not both of a given pair of
+/// [`NewlineSet`]s.  Values are unique and yielded in ascending order.
+///
+/// A `SymmetricDifference` instance is acquired by calling
+/// [`NewlineSet::symmetric_difference()`].
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SymmetricDifference(Char2Newline<InnerSymmetricDifference>);
 

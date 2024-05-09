@@ -5,6 +5,10 @@ use crate::nl::Newline;
 use crate::nlset::NewlineSet;
 use std::iter::FusedIterator;
 
+/// Iterator of all [`Newline`] variants in one or both of a given pair of
+/// [`NewlineSet`]s.  Values are unique and yielded in ascending order.
+///
+/// A `Union` instance is acquired by calling [`NewlineSet::union()`].
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Union(Char2Newline<InnerUnion>);
 

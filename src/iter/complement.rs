@@ -5,6 +5,11 @@ use crate::nl::Newline;
 use crate::nlset::NewlineSet;
 use std::iter::FusedIterator;
 
+/// Iterator of all [`Newline`] variants not in a given [`NewlineSet`].  Values
+/// are unique and yielded in ascending order.
+///
+/// A `Complement` instance is acquired by calling
+/// [`NewlineSet::complement()`].
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Complement(Char2Newline<InnerDifference>);
 
