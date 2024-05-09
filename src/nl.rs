@@ -9,6 +9,17 @@ use strum::{EnumCount, EnumIter};
 /// Note that the order of the variants matches the lexicographic order of the
 /// variants' newline sequences as strings.
 ///
+/// `Newline` values can be combined using the following operators, producing
+/// [`NewlineSet`][crate::NewlineSet] instances:
+///
+/// - `|` for union
+/// - `&` for intersection
+/// - `^` for symmetric difference
+/// - `-` for difference
+///
+/// The complement of a `Newline` can also be acquired as a
+/// [`NewlineSet`][crate::NewlineSet] by applying the `!` operator to it.
+///
 /// [tr14]: https://www.unicode.org/reports/tr14/
 #[derive(Copy, Clone, Debug, EnumCount, EnumIter, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Newline {
@@ -57,7 +68,7 @@ impl Newline {
     // To avoid the need for users to import the trait
     pub const COUNT: usize = <Newline as EnumCount>::COUNT;
 
-    /// Returns an iterator over all [`Newline`] variants
+    /// Returns an iterator over all `Newline` variants
     pub fn iter() -> NewlineIter {
         // To avoid the need for users to import the trait
         <Newline as strum::IntoEnumIterator>::iter()

@@ -6,6 +6,36 @@ use super::nl::{CharType, Newline};
 use std::fmt;
 use std::ops;
 
+/// A set of newline sequences that can be used to search for or split on any
+/// sequence in the set.
+///
+/// A `NewlineSet` can be constructed in the following ways:
+///
+/// - By creating an empty set with [`NewlineSet::new()`]
+///
+/// - By converting a single [`Newline`] to a `NewlineSet` containing only that
+///   newline using the [`From`] & [`Into`] traits
+///
+/// - By applying `Newline::from()` to an array of [`Newline`] values
+///
+/// - By applying `Newline::from_iter()` to an `IntoIterator` type that yields
+///   [`Newline`] values
+///
+/// Constants are also provided for common collections of newline sequences.
+///
+/// `NewlineSet` values can be combined using the following operators:
+///
+/// - `|` and `|=` for union
+/// - `&` and `&=` for intersection
+/// - `^` and `^=` for symmetric difference
+/// - `-` and `-=` for difference
+///
+/// For the non-assignment operators, either side may be a `Newline` or
+/// `NewlineSet`.  For the assignment operators, the right-hand side may be a
+/// `Newline` or `NewlineSet`.
+///
+/// The complement of a `NewlineSet` can also be acquired by applying the `!`
+/// operator to it.
 #[derive(Copy, Clone, Default, Eq, Hash, PartialEq)]
 pub struct NewlineSet {
     /// The set of initial characters of the string representations of the
@@ -133,22 +163,29 @@ impl NewlineSet {
         crlf: true,
     };
 
+    /// Create an empty `NewlineSet`
     pub fn new() -> NewlineSet {
         NewlineSet::default()
     }
 
+    /// Returns the number of [`Newline`] variants in the set
     pub fn len(&self) -> usize {
         self.pattern.len() + usize::from(self.cr && self.crlf)
     }
 
+    /// Returns `true` if the set is empty
     pub fn is_empty(&self) -> bool {
         self.pattern.is_empty()
     }
 
+    /// [Private] Returns a `char` slice that can be used to search a string
+    /// for any occurrence of a character that starts a newline sequence in the
+    /// set
     pub(crate) fn pattern(&self) -> &[char] {
         self.pattern.as_slice()
     }
 
+    /// Returns `true` if the given [`Newline`] is in the set
     pub fn contains(&self, nl: Newline) -> bool {
         match nl.chartype() {
             CharType::Char('\r') => self.cr,
@@ -157,7 +194,20 @@ impl NewlineSet {
         }
     }
 
-    // Returns `true` if `nl` was not in `self` before insertion
+    /// Adds the given [`Newline`] to the set if not already present.
+    ///
+    /// Returns `true` if the given `Newline` was not already in the set.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use newlines::{Newline, NewlineSet};
+    ///
+    /// let mut nlset = NewlineSet::new();
+    /// assert!(nlset.insert(Newline::LineFeed));
+    /// assert!(!nlset.insert(Newline::LineFeed));
+    /// assert!(nlset.insert(Newline::CrLf));
+    /// ```
     pub fn insert(&mut self, nl: Newline) -> bool {
         let ch = match nl.chartype() {
             CharType::Char('\r') => {
@@ -183,7 +233,21 @@ impl NewlineSet {
         self.pattern.insert(ch)
     }
 
-    // Returns `true` if `nl` was in `self` before removal
+    /// Removes the given [`Newline`] from the set if present.
+    ///
+    /// Returns `true` if the given `Newline` was present in the set.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use newlines::Newline;
+    ///
+    /// let mut nlset = Newline::LineFeed | Newline::CrLf;
+    /// assert!(nlset.remove(Newline::LineFeed));
+    /// assert!(!nlset.remove(Newline::LineFeed));
+    /// assert!(nlset.remove(Newline::CrLf));
+    /// assert!(!nlset.remove(Newline::NextLine));
+    /// ```
     pub fn remove(&mut self, nl: Newline) -> bool {
         let ch = match nl.chartype() {
             CharType::Char('\r') => {
@@ -209,10 +273,25 @@ impl NewlineSet {
         self.pattern.remove(ch)
     }
 
+    /// Removes all [`Newline`]s from the set
     pub fn clear(&mut self) {
         *self = Self::default();
     }
 
+    /// Returns true if `self` and `other` are disjoint, i.e., if there is no
+    /// [`Newline`] variant that is in both sets.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use newlines::Newline;
+    ///
+    /// let nlset1 = Newline::LineFeed | Newline::CrLf;
+    /// let nlset2 = Newline::LineSeparator | Newline::ParagraphSeparator;
+    /// let nlset3 = Newline::CarriageReturn | Newline::CrLf;
+    /// assert!(nlset1.is_disjoint(nlset2));
+    /// assert!(!nlset1.is_disjoint(nlset3));
+    /// ```
     pub fn is_disjoint(&self, other: NewlineSet) -> bool {
         for d in self.pattern.diff(other.pattern) {
             match d {
@@ -228,6 +307,19 @@ impl NewlineSet {
         true
     }
 
+    /// Returns `true` if `self` is a subset of `other`
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use newlines::Newline;
+    ///
+    /// let nlset1 = Newline::LineFeed | Newline::CrLf;
+    /// let nlset2 = Newline::LineFeed | Newline::CrLf | Newline::CarriageReturn;
+    /// let nlset3 = Newline::LineFeed | Newline::CarriageReturn;
+    /// assert!(nlset1.is_subset(nlset2));
+    /// assert!(!nlset1.is_subset(nlset3));
+    /// ```
     pub fn is_subset(&self, other: NewlineSet) -> bool {
         for d in self.pattern.diff(other.pattern) {
             match d {
@@ -243,30 +335,55 @@ impl NewlineSet {
         true
     }
 
+    /// Returns `true` if `self` is a superset of `other`
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use newlines::Newline;
+    ///
+    /// let nlset1 = Newline::LineFeed | Newline::CrLf | Newline::CarriageReturn;
+    /// let nlset2 = Newline::LineFeed | Newline::CrLf;
+    /// let nlset3 = Newline::LineFeed | Newline::NextLine;
+    /// assert!(nlset1.is_superset(nlset2));
+    /// assert!(!nlset1.is_superset(nlset3));
+    /// ```
     pub fn is_superset(&self, other: NewlineSet) -> bool {
         other.is_subset(*self)
     }
 
+    /// Returns an iterator over all [`Newline`] variants in `self` and/or
+    /// `other`, without duplicates, in ascending order
     pub fn union(self, other: NewlineSet) -> Union {
         Union::new(self, other)
     }
 
+    /// Returns an iterator over all [`Newline`] variants in both `self` and
+    /// `other`, without duplicates, in ascending order
     pub fn intersection(self, other: NewlineSet) -> Intersection {
         Intersection::new(self, other)
     }
 
+    /// Returns an iterator over all [`Newline`] variants in `self` or `other`
+    /// but not both, without duplicates, in ascending order
     pub fn symmetric_difference(self, other: NewlineSet) -> SymmetricDifference {
         SymmetricDifference::new(self, other)
     }
 
+    /// Returns an iterator over all [`Newline`] variants in `self` but not
+    /// `other`, without duplicates, in ascending order
     pub fn difference(self, other: NewlineSet) -> Difference {
         Difference::new(self, other)
     }
 
+    /// Returns an iterator over all [`Newline`] variants not in `self`,
+    /// without duplicates, in ascending order
     pub fn complement(self) -> Complement {
         Complement::new(self)
     }
 
+    /// Returns an iterator over all [`Newline`] variants in `self`, without
+    /// duplicates, in ascending order
     pub fn iter(&self) -> IntoIter {
         self.into_iter()
     }
