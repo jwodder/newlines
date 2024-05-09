@@ -560,7 +560,7 @@ mod tests {
     #[test]
     fn test_insert_two() {
         for nls in Newline::iter().permutations(2) {
-            let [nl1, nl2] = nls.try_into().unwrap();
+            let [nl1, nl2]: [Newline; 2] = nls.try_into().unwrap();
             let mut nlset = NewlineSet::new();
             assert!(nlset.insert(nl1));
             assert!(nlset.insert(nl2));
@@ -601,7 +601,7 @@ mod tests {
     #[test]
     fn test_insert_two_remove_first() {
         for nls in Newline::iter().permutations(2) {
-            let [nl1, nl2] = nls.try_into().unwrap();
+            let [nl1, nl2]: [Newline; 2] = nls.try_into().unwrap();
             let mut nlset = NewlineSet::new();
             assert!(nlset.insert(nl1));
             assert!(nlset.insert(nl2));
@@ -666,7 +666,7 @@ mod tests {
         #[test]
         fn two_elem() {
             for nls in Newline::iter().permutations(2) {
-                let [nl1, nl2] = nls.try_into().unwrap();
+                let [nl1, nl2]: [Newline; 2] = nls.try_into().unwrap();
                 let nlset = NewlineSet::from([nl1, nl2]);
                 assert_pair(nlset, nl1, nl2);
             }
