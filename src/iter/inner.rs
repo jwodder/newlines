@@ -30,7 +30,7 @@ impl<I: Iterator<Item = char>> Iterator for Char2Newline<I> {
         }
         loop {
             let Some(ch) = self.inner.next() else {
-                return std::mem::take(&mut self.queued_back);
+                return core::mem::take(&mut self.queued_back);
             };
             match (ch, self.cr, self.crlf) {
                 ('\r', true, crlf) => {
@@ -79,7 +79,7 @@ impl<I: DoubleEndedIterator<Item = char>> DoubleEndedIterator for Char2Newline<I
             return Some(nl);
         }
         let Some(ch) = self.inner.next_back() else {
-            return std::mem::take(&mut self.queued);
+            return core::mem::take(&mut self.queued);
         };
         match (ch, self.cr, self.crlf) {
             ('\r', cr, true) => {
@@ -109,13 +109,13 @@ mod tests {
 
     #[test]
     fn cr() {
-        let mut iter = Char2Newline::new(std::iter::once('\r'), true, false);
+        let mut iter = Char2Newline::new(core::iter::once('\r'), true, false);
         assert_eq!(iter.size_hint(), (1, Some(1)));
         assert_eq!(iter.next(), Some(Newline::CarriageReturn));
         assert_eq!(iter.size_hint(), (0, Some(0)));
         assert_eq!(iter.next_back(), None);
         assert_eq!(iter.next(), None);
-        let mut iter = Char2Newline::new(std::iter::once('\r'), true, false);
+        let mut iter = Char2Newline::new(core::iter::once('\r'), true, false);
         assert_eq!(iter.size_hint(), (1, Some(1)));
         assert_eq!(iter.next_back(), Some(Newline::CarriageReturn));
         assert_eq!(iter.size_hint(), (0, Some(0)));
@@ -125,13 +125,13 @@ mod tests {
 
     #[test]
     fn crlf() {
-        let mut iter = Char2Newline::new(std::iter::once('\r'), false, true);
+        let mut iter = Char2Newline::new(core::iter::once('\r'), false, true);
         assert_eq!(iter.size_hint(), (1, Some(1)));
         assert_eq!(iter.next(), Some(Newline::CrLf));
         assert_eq!(iter.size_hint(), (0, Some(0)));
         assert_eq!(iter.next_back(), None);
         assert_eq!(iter.next(), None);
-        let mut iter = Char2Newline::new(std::iter::once('\r'), false, true);
+        let mut iter = Char2Newline::new(core::iter::once('\r'), false, true);
         assert_eq!(iter.size_hint(), (1, Some(1)));
         assert_eq!(iter.next_back(), Some(Newline::CrLf));
         assert_eq!(iter.size_hint(), (0, Some(0)));
@@ -141,7 +141,7 @@ mod tests {
 
     #[test]
     fn cr_crlf() {
-        let mut iter = Char2Newline::new(std::iter::once('\r'), true, true);
+        let mut iter = Char2Newline::new(core::iter::once('\r'), true, true);
         assert_eq!(iter.size_hint(), (2, Some(2)));
         assert_eq!(iter.next(), Some(Newline::CarriageReturn));
         assert_eq!(iter.size_hint(), (1, Some(1)));
@@ -149,7 +149,7 @@ mod tests {
         assert_eq!(iter.size_hint(), (0, Some(0)));
         assert_eq!(iter.next(), None);
         assert_eq!(iter.next_back(), None);
-        let mut iter = Char2Newline::new(std::iter::once('\r'), true, true);
+        let mut iter = Char2Newline::new(core::iter::once('\r'), true, true);
         assert_eq!(iter.size_hint(), (2, Some(2)));
         assert_eq!(iter.next_back(), Some(Newline::CrLf));
         assert_eq!(iter.size_hint(), (1, Some(1)));
@@ -157,7 +157,7 @@ mod tests {
         assert_eq!(iter.size_hint(), (0, Some(0)));
         assert_eq!(iter.next_back(), None);
         assert_eq!(iter.next(), None);
-        let mut iter = Char2Newline::new(std::iter::once('\r'), true, true);
+        let mut iter = Char2Newline::new(core::iter::once('\r'), true, true);
         assert_eq!(iter.size_hint(), (2, Some(2)));
         assert_eq!(iter.next(), Some(Newline::CarriageReturn));
         assert_eq!(iter.size_hint(), (1, Some(1)));
@@ -165,7 +165,7 @@ mod tests {
         assert_eq!(iter.size_hint(), (0, Some(0)));
         assert_eq!(iter.next(), None);
         assert_eq!(iter.next_back(), None);
-        let mut iter = Char2Newline::new(std::iter::once('\r'), true, true);
+        let mut iter = Char2Newline::new(core::iter::once('\r'), true, true);
         assert_eq!(iter.size_hint(), (2, Some(2)));
         assert_eq!(iter.next_back(), Some(Newline::CrLf));
         assert_eq!(iter.size_hint(), (1, Some(1)));

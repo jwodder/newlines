@@ -1,3 +1,5 @@
+#![cfg_attr(not(any(feature = "std", test)), no_std)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 mod charset;
 pub mod errors;
 pub mod iter;

@@ -8,15 +8,23 @@ authors = ["John Thorvald Wodder II <newlines@varonathe.org>"]
 repository = "https://github.com/jwodder/newlines"
 license = "MIT"
 keywords = ["line-break", "line-ending", "newlines", "paragraphs"]
-categories = ["text-processing"]
+categories = ["no-std", "text-processing"]
 exclude = ["/.*"]
 
 [dependencies]
-strum = { version = "0.26.2", features = ["derive"] }
+strum = { version = "0.26.2", default-features = false, features = ["derive"] }
 
 [dev-dependencies]
 itertools = "0.12.1"
 rstest = { version = "0.19.0", default-features = false }
+
+[features]
+default = ["std"]
+std = []
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [lints.rust]
 # Lint groups:

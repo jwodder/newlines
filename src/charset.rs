@@ -1,6 +1,6 @@
 use super::nl::Newline;
-use std::cmp::Ordering;
-use std::iter::FusedIterator;
+use core::cmp::Ordering;
+use core::iter::FusedIterator;
 
 /// A set of at most `Newline::COUNT - 1` characters.
 ///

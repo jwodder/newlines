@@ -3,7 +3,7 @@ use super::AscendingNewlines;
 use crate::charset::CharSetIter;
 use crate::nl::Newline;
 use crate::nlset::NewlineSet;
-use std::iter::FusedIterator;
+use core::iter::FusedIterator;
 
 /// Iterator of all [`Newline`] variants in a given [`NewlineSet`].  Values are
 /// unique and yielded in ascending order.

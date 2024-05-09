@@ -1,5 +1,5 @@
 //! Error types
-use std::fmt;
+use core::fmt;
 
 /// Error returned by `TryFrom<char> for Newline` when given a `char` that is
 /// not a recognized newline sequence
@@ -15,8 +15,8 @@ impl fmt::Display for TryFromCharError {
     }
 }
 
-//#[cfg(feature = "std")]
-//#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+#[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 impl std::error::Error for TryFromCharError {}
 
 /// Error returned by `TryFrom<&str> for Newline` when given a `&str` that is
@@ -30,6 +30,6 @@ impl fmt::Display for TryFromStrError {
     }
 }
 
-//#[cfg(feature = "std")]
-//#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+#[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 impl std::error::Error for TryFromStrError {}
