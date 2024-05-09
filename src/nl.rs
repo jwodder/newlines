@@ -53,6 +53,7 @@ pub enum Newline {
 }
 
 impl Newline {
+    /// The number of `Newline` variants
     // To avoid the need for users to import the trait
     pub const COUNT: usize = <Newline as EnumCount>::COUNT;
 
@@ -62,6 +63,17 @@ impl Newline {
         <Newline as strum::IntoEnumIterator>::iter()
     }
 
+    /// Returns the string representation of the newline sequence
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use newlines::Newline;
+    ///
+    /// assert_eq!(Newline::LineFeed.as_str(), "\n");
+    /// assert_eq!(Newline::CrLf.as_str(), "\r\n");
+    /// assert_eq!(Newline::LineSeparator.as_str(), "\u{2028}");
+    /// ```
     pub fn as_str(&self) -> &'static str {
         match self {
             Newline::LineFeed => "\n",
@@ -75,6 +87,21 @@ impl Newline {
         }
     }
 
+    /// If the newline sequence consist of only a single character, returns
+    /// that character.
+    ///
+    /// [`Newline::CrLf`] is the only variant for which this method returns
+    /// `None`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use newlines::Newline;
+    ///
+    /// assert_eq!(Newline::LineFeed.as_char(), Some('\n'));
+    /// assert_eq!(Newline::CrLf.as_char(), None);
+    /// assert_eq!(Newline::LineSeparator.as_char(), Some('\u{2028}'));
+    /// ```
     pub fn as_char(&self) -> Option<char> {
         match self.chartype() {
             CharType::Char(ch) => Some(ch),
@@ -82,6 +109,8 @@ impl Newline {
         }
     }
 
+    /// [Private] Returns an enum describing the newline sequence as either a
+    /// single character or CRLF
     pub(crate) fn chartype(&self) -> CharType {
         match self {
             Newline::LineFeed => CharType::Char('\n'),
@@ -95,6 +124,17 @@ impl Newline {
         }
     }
 
+    /// Returns the number of characters in the newline sequence
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use newlines::Newline;
+    ///
+    /// assert_eq!(Newline::LineFeed.len_char(), 1);
+    /// assert_eq!(Newline::CrLf.len_char(), 2);
+    /// assert_eq!(Newline::LineSeparator.len_char(), 1);
+    /// ```
     pub fn len_char(&self) -> usize {
         match self {
             Newline::CrLf => 2,
@@ -102,12 +142,26 @@ impl Newline {
         }
     }
 
+    /// Returns the number of bytes in the UTF-8 encoding of the newline
+    /// sequence
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use newlines::Newline;
+    ///
+    /// assert_eq!(Newline::LineFeed.len_utf8(), 1);
+    /// assert_eq!(Newline::CrLf.len_utf8(), 2);
+    /// assert_eq!(Newline::LineSeparator.len_utf8(), 3);
+    /// ```
     pub fn len_utf8(&self) -> usize {
         self.as_str().len()
     }
 }
 
 impl fmt::Display for Newline {
+    /// A `Newline` is displayed as its string representation (the same as
+    /// returned by [`Newline::as_str()`])
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.as_str())
     }
@@ -116,6 +170,24 @@ impl fmt::Display for Newline {
 impl TryFrom<char> for Newline {
     type Error = TryFromCharError;
 
+    /// If the given character is a recognized newline sequence on its own, the
+    /// corresponding `Newline` is returned.
+    ///
+    /// [`Newline::CrLf`] cannot be obtained from this method.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use newlines::Newline;
+    ///
+    /// assert_eq!(Newline::try_from('\n').unwrap(), Newline::LineFeed);
+    /// assert_eq!(Newline::try_from('\r').unwrap(), Newline::CarriageReturn);
+    /// assert_eq!(
+    ///     Newline::try_from('\u{2028}').unwrap(),
+    ///     Newline::LineSeparator,
+    /// );
+    /// assert!(Newline::try_from(' ').is_err());
+    /// ```
     fn try_from(value: char) -> Result<Newline, TryFromCharError> {
         match value {
             '\n' => Ok(Newline::LineFeed),
@@ -133,6 +205,24 @@ impl TryFrom<char> for Newline {
 impl TryFrom<&str> for Newline {
     type Error = TryFromStrError;
 
+    /// If the given string is a recognized newline sequence, the corresponding
+    /// `Newline` is returned.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use newlines::Newline;
+    ///
+    /// assert_eq!(Newline::try_from("\n").unwrap(), Newline::LineFeed);
+    /// assert_eq!(Newline::try_from("\r").unwrap(), Newline::CarriageReturn);
+    /// assert_eq!(Newline::try_from("\r\n").unwrap(), Newline::CrLf);
+    /// assert_eq!(
+    ///     Newline::try_from("\u{2028}").unwrap(),
+    ///     Newline::LineSeparator,
+    /// );
+    /// assert!(Newline::try_from("\n\r").is_err());
+    /// assert!(Newline::try_from(" ").is_err());
+    /// ```
     fn try_from(value: &str) -> Result<Newline, TryFromStrError> {
         match value {
             "\n" => Ok(Newline::LineFeed),
