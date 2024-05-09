@@ -2,16 +2,54 @@ use super::errors::{TryFromCharError, TryFromStrError};
 use std::fmt;
 use strum::{EnumCount, EnumIter};
 
+/// An enumeration of various newline sequences.  This includes both typical
+/// newlines used on major operating systems and characters that the [Unicode
+/// Line Breaking Algorithm][tr14] treats as mandatory line breaks.
+///
+/// Note that the order of the variants matches the lexicographic order of the
+/// variants' newline sequences as strings.
+///
+/// [tr14]: https://www.unicode.org/reports/tr14/
 #[derive(Copy, Clone, Debug, EnumCount, EnumIter, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Newline {
+    /// U+000A LINE FEED (LF), the newline sequence used on Unix-like systems
+    ///
+    /// Representable as `'\n'` in various programming languages
     LineFeed,
+
+    /// U+000B LINE TABULATION (a.k.a. "vertical tab," "VTAB," or "VT")
+    ///
+    /// Representable as `'\v'` in various programming languages (not Rust)
     VerticalTab,
+
+    /// U+000C FORM FEED (FF), often used to separate pages of text
+    ///
+    /// Representable as `'\f'` in various programming languages (not Rust)
     FormFeed,
+
+    /// U+000D CARRIAGE RETURN (CR), the newline sequence used on Mac OS 9.x
+    /// and earlier
+    ///
+    /// Representable as `'\r'` in various programming languages
     CarriageReturn,
+
+    /// <U+000A, U+000D>, a carriage return character followed by a line feed
+    /// character.  This is the newline sequence used on Windows and by many
+    /// text-based internet protocols.
+    ///
+    /// This is the only multi-character newline sequence recognized by this
+    /// library.
     CrLf,
-    NextLine,           // 0x85
-    LineSeparator,      // U+2028
-    ParagraphSeparator, // U+2029
+
+    /// U+0085 NEXT LINE (NEL), the Unicode equivalent of the newline sequence
+    /// used on EBCDIC-based systems
+    NextLine,
+
+    /// U+2028 LINE SEPARATOR
+    LineSeparator,
+
+    /// U+2029 PARAGRAPH SEPARATOR
+    ParagraphSeparator,
 }
 
 impl Newline {

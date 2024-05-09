@@ -24,7 +24,21 @@ pub struct NewlineSet {
 }
 
 impl NewlineSet {
-    // LF + CR LF
+    /// An empty `NewlineSet`
+    pub const EMPTY: NewlineSet = NewlineSet {
+        pattern: CharSet {
+            data: ['\0'; 7],
+            len: 0,
+        },
+        cr: false,
+        crlf: false,
+    };
+
+    /// The newline sequences recognized by Rust's standard library in methods
+    /// like [`str::lines()`] and [`std::io::BufRead::lines()`]:
+    ///
+    /// - [`Newline::LineFeed`]
+    /// - [`Newline::CrLf`]
     pub const RUST: NewlineSet = NewlineSet {
         pattern: CharSet {
             data: ['\n', '\r', '\0', '\0', '\0', '\0', '\0'],
@@ -34,7 +48,11 @@ impl NewlineSet {
         crlf: true,
     };
 
-    // LF + CR LF + CR
+    /// The typical ASCII newline sequences:
+    ///
+    /// - [`Newline::LineFeed`]
+    /// - [`Newline::CarriageReturn`]
+    /// - [`Newline::CrLf`]
     pub const ASCII: NewlineSet = NewlineSet {
         pattern: CharSet {
             data: ['\n', '\r', '\0', '\0', '\0', '\0', '\0'],
@@ -44,8 +62,13 @@ impl NewlineSet {
         crlf: true,
     };
 
-    // LF + CR LF + CR + NEL ("newline function" defined in §5.8 of the Unicode
-    // Standard)
+    /// Newline sequences classified as "newline functions" by Unicode §5.8,
+    /// "Newline Guidelines":
+    ///
+    /// - [`Newline::LineFeed`]
+    /// - [`Newline::CarriageReturn`]
+    /// - [`Newline::CrLf`]
+    /// - [`Newline::NextLine`]
     pub const NLF: NewlineSet = NewlineSet {
         pattern: CharSet {
             data: ['\n', '\r', '\u{0085}', '\0', '\0', '\0', '\0'],
@@ -55,9 +78,16 @@ impl NewlineSet {
         crlf: true,
     };
 
-    // LF + CR LF + CR + NEL + FF + LineSep + ParaSep — Unicode's recommended
-    // terminators when doing a "readline" operation, as per §5.8 of the
-    // Unicode Standard
+    /// Newline sequences that Unicode §5.8, "Newline Guidelines", advises
+    /// readline functions to stop at:
+    ///
+    /// - [`Newline::LineFeed`]
+    /// - [`Newline::FormFeed`]
+    /// - [`Newline::CarriageReturn`]
+    /// - [`Newline::CrLf`]
+    /// - [`Newline::NextLine`]
+    /// - [`Newline::LineSeparator`]
+    /// - [`Newline::ParagraphSeparator`]
     pub const READLINE: NewlineSet = NewlineSet {
         pattern: CharSet {
             data: ['\n', '\x0C', '\r', '\u{0085}', '\u{2028}', '\u{2029}', '\0'],
@@ -67,9 +97,19 @@ impl NewlineSet {
         crlf: true,
     };
 
-    // READLINE | VerticalTab
-    // Everything considered a newline by Unicode.  This will differ from ALL
-    // if Python's splitlines()-specific endings are ever added to the library.
+    /// All newline sequences that are treated as mandatory line breaks by the
+    /// [Unicode Line Breaking Algorithm][tr14]:
+    ///
+    /// - [`Newline::LineFeed`]
+    /// - [`Newline::VerticalTab`]
+    /// - [`Newline::FormFeed`]
+    /// - [`Newline::CarriageReturn`]
+    /// - [`Newline::CrLf`]
+    /// - [`Newline::NextLine`]
+    /// - [`Newline::LineSeparator`]
+    /// - [`Newline::ParagraphSeparator`]
+    ///
+    /// [tr14]: https://www.unicode.org/reports/tr14/
     pub const UNICODE: NewlineSet = NewlineSet {
         pattern: CharSet {
             data: [
@@ -81,6 +121,7 @@ impl NewlineSet {
         crlf: true,
     };
 
+    /// All newline sequences recognized by this library
     pub const ALL: NewlineSet = NewlineSet {
         pattern: CharSet {
             data: [
@@ -90,15 +131,6 @@ impl NewlineSet {
         },
         cr: true,
         crlf: true,
-    };
-
-    pub const EMPTY: NewlineSet = NewlineSet {
-        pattern: CharSet {
-            data: ['\0'; 7],
-            len: 0,
-        },
-        cr: false,
-        crlf: false,
     };
 
     pub fn new() -> NewlineSet {
