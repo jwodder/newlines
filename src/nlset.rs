@@ -3,8 +3,8 @@ use super::iter::{
     AscendingNewlines, Complement, Difference, Intersection, IntoIter, SymmetricDifference, Union,
 };
 use super::nl::{CharType, Newline};
-use std::fmt;
-use std::ops;
+use core::fmt;
+use core::ops;
 
 /// A set of newline sequences that can be used to search for or split on any
 /// sequence in the set.
@@ -211,7 +211,7 @@ impl NewlineSet {
     pub fn insert(&mut self, nl: Newline) -> bool {
         let ch = match nl.chartype() {
             CharType::Char('\r') => {
-                if std::mem::replace(&mut self.cr, true) {
+                if core::mem::replace(&mut self.cr, true) {
                     return false;
                 }
                 if self.crlf {
@@ -221,7 +221,7 @@ impl NewlineSet {
             }
             CharType::Char(ch) => ch,
             CharType::CrLf => {
-                if std::mem::replace(&mut self.crlf, true) {
+                if core::mem::replace(&mut self.crlf, true) {
                     return false;
                 }
                 if self.cr {
@@ -251,7 +251,7 @@ impl NewlineSet {
     pub fn remove(&mut self, nl: Newline) -> bool {
         let ch = match nl.chartype() {
             CharType::Char('\r') => {
-                if !std::mem::replace(&mut self.cr, false) {
+                if !core::mem::replace(&mut self.cr, false) {
                     return false;
                 }
                 if self.crlf {
@@ -261,7 +261,7 @@ impl NewlineSet {
             }
             CharType::Char(ch) => ch,
             CharType::CrLf => {
-                if !std::mem::replace(&mut self.crlf, false) {
+                if !core::mem::replace(&mut self.crlf, false) {
                     return false;
                 }
                 if self.cr {
@@ -391,13 +391,13 @@ impl NewlineSet {
 
 impl Ord for NewlineSet {
     // Same ordering logic as BTreeSet
-    fn cmp(&self, other: &NewlineSet) -> std::cmp::Ordering {
+    fn cmp(&self, other: &NewlineSet) -> core::cmp::Ordering {
         self.iter().cmp(other.iter())
     }
 }
 
 impl PartialOrd for NewlineSet {
-    fn partial_cmp(&self, other: &NewlineSet) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &NewlineSet) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
@@ -633,7 +633,7 @@ mod tests {
         assert_eq!(nlset, NewlineSet::from([nl1, nl2]));
         assert_eq!(
             nlset.into_iter().collect_vec(),
-            [std::cmp::min(nl1, nl2), std::cmp::max(nl1, nl2)]
+            [core::cmp::min(nl1, nl2), core::cmp::max(nl1, nl2)]
         );
     }
 
@@ -803,14 +803,14 @@ mod tests {
 
         #[test]
         fn empty() {
-            let nlset = NewlineSet::from_iter(std::iter::empty());
+            let nlset = NewlineSet::from_iter(core::iter::empty());
             assert_empty(nlset);
         }
 
         #[test]
         fn singleton() {
             for nl in Newline::iter() {
-                let nlset = NewlineSet::from_iter(std::iter::once(nl));
+                let nlset = NewlineSet::from_iter(core::iter::once(nl));
                 assert_singleton(nlset, nl);
             }
         }
@@ -854,7 +854,7 @@ mod tests {
         #[test]
         fn empty_plus_empty() {
             let mut nlset = NewlineSet::new();
-            nlset.extend(std::iter::empty());
+            nlset.extend(core::iter::empty());
             assert_empty(nlset);
         }
 

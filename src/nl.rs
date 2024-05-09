@@ -1,5 +1,5 @@
 use super::errors::{TryFromCharError, TryFromStrError};
-use std::fmt;
+use core::fmt;
 use strum::{EnumCount, EnumIter};
 
 /// An enumeration of various newline sequences.  This includes both typical
