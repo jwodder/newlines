@@ -1,7 +1,13 @@
+//! Error types
 use std::fmt;
 
+/// Error returned by `TryFrom<char> for Newline` when given a `char` that is
+/// not a recognized newline sequence
 #[derive(Copy, Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct TryFromCharError(pub char);
+pub struct TryFromCharError(
+    /// The character provided to `TryFrom`
+    pub char,
+);
 
 impl fmt::Display for TryFromCharError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -13,6 +19,8 @@ impl fmt::Display for TryFromCharError {
 //#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 impl std::error::Error for TryFromCharError {}
 
+/// Error returned by `TryFrom<&str> for Newline` when given a `&str` that is
+/// not a recognized newline sequence
 #[derive(Copy, Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct TryFromStrError;
 
