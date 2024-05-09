@@ -7,9 +7,8 @@ description = "Splitting strings on various newline sequences"
 authors = ["John Thorvald Wodder II <newlines@varonathe.org>"]
 repository = "https://github.com/jwodder/newlines"
 license = "MIT"
-keywords = []
-# See <https://crates.io/category_slugs> for a list of categories
-categories = []
+keywords = ["line-break", "line-ending", "newlines", "paragraphs"]
+categories = ["text-processing"]
 exclude = ["/.*"]
 
 [dependencies]
