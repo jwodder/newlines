@@ -118,6 +118,9 @@ jobs:
       - name: Install cargo-hack
         uses: taiki-e/install-action@cargo-hack
 
+      - name: Check no-std code
+        run: cargo clippy --no-default-features -- -Dwarnings
+
       - name: Check code
         run: cargo hack --feature-powerset clippy --all-targets -- -Dwarnings
 
