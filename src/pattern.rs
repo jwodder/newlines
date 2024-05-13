@@ -11,72 +11,82 @@ mod private {
 }
 
 pub trait NewlinePattern: private::Sealed {
-    fn search(&self, s: &str) -> Option<(usize, usize)>;
-    fn rsearch(&self, s: &str) -> Option<(usize, usize)>;
-}
+    // Panics if `start` is not on a character boundary
+    fn search_after(&self, s: &str, start: usize) -> Option<(usize, usize)>;
 
-impl NewlinePattern for Newline {
+    // Panics if `stop` is not on a character boundary
+    fn rsearch_before(&self, s: &str, stop: usize) -> Option<(usize, usize)>;
+
     fn search(&self, s: &str) -> Option<(usize, usize)> {
-        let start = s.find(self.as_str())?;
-        let end = start.saturating_add(self.len_utf8());
-        Some((start, end))
+        self.search_after(s, 0)
     }
 
     fn rsearch(&self, s: &str) -> Option<(usize, usize)> {
-        let start = s.rfind(self.as_str())?;
-        let end = start.saturating_add(self.len_utf8());
-        Some((start, end))
+        self.rsearch_before(s, s.len())
+    }
+}
+
+impl NewlinePattern for Newline {
+    fn search_after(&self, s: &str, start: usize) -> Option<(usize, usize)> {
+        let i = s[start..].find(self.as_str())?.saturating_add(start);
+        let j = i.saturating_add(self.len_utf8());
+        Some((i, j))
+    }
+
+    fn rsearch_before(&self, s: &str, stop: usize) -> Option<(usize, usize)> {
+        let i = s[..stop].rfind(self.as_str())?;
+        let j = i.saturating_add(self.len_utf8());
+        Some((i, j))
     }
 }
 
 impl NewlinePattern for NewlineSet {
-    fn search(&self, s: &str) -> Option<(usize, usize)> {
+    fn search_after(&self, s: &str, start: usize) -> Option<(usize, usize)> {
         if self.is_empty() {
             return None;
         }
-        let start = s.find(self.pattern())?;
-        let length = if self.crlf && s[start..].starts_with("\r\n") {
+        let i = s[start..].find(self.pattern())?.saturating_add(start);
+        let length = if self.crlf && s[i..].starts_with("\r\n") {
             2
         } else {
-            let Some(ch) = s[start..].chars().next() else {
+            let Some(ch) = s[i..].chars().next() else {
                 unreachable!(
                     "Nonempty NewlineSet pattern should have matched at start of a character"
                 )
             };
             ch.len_utf8()
         };
-        let end = start.saturating_add(length);
-        Some((start, end))
+        let j = i.saturating_add(length);
+        Some((i, j))
     }
 
-    fn rsearch(&self, s: &str) -> Option<(usize, usize)> {
+    fn rsearch_before(&self, s: &str, mut stop: usize) -> Option<(usize, usize)> {
         if self.is_empty() {
             return None;
         }
-        let mut s_end = s.len();
         loop {
-            let mut start = s[..s_end].rfind(self.pattern())?;
+            let mut i = s[..stop].rfind(self.pattern())?;
             let length = match (self.crlf, self.pattern.contains('\n')) {
-                (true, true) if s[start..].starts_with('\n') && s[..start].ends_with('\r') => {
-                    start -= 1;
+                (true, true) if s[i..stop].starts_with('\n') && s[..i].ends_with('\r') => {
+                    i -= 1;
                     2
                 }
-                (true, false) if s[start..].starts_with("\r\n") => 2,
+                (true, false) if s[i..stop].starts_with("\r\n") => 2,
                 _ => {
-                    let Some(ch) = s[start..].chars().next() else {
+                    let Some(ch) = s[i..stop].chars().next() else {
                         unreachable!(
-                        "Nonempty NewlineSet pattern should have matched at start of a character"
-                    )
+                            "Nonempty NewlineSet pattern should have matched at start of a character"
+                        )
                     };
                     if !self.cr && ch == '\r' {
-                        s_end = start;
+                        stop = i;
                         continue;
                     }
                     ch.len_utf8()
                 }
             };
-            let end = start.saturating_add(length);
-            return Some((start, end));
+            let j = i.saturating_add(length);
+            return Some((i, j));
         }
     }
 }
@@ -126,6 +136,44 @@ mod tests {
             assert_eq!(nl.rsearch(s), m);
             if let Some((start, end)) = m {
                 assert_eq!(&s[start..end], nl.as_str());
+            }
+        }
+
+        #[rstest]
+        #[case(Newline::LineFeed, "foo\nbar", 7, None)]
+        #[case(Newline::LineFeed, "foo\nbar", 4, None)]
+        #[case(Newline::LineFeed, "foo\nbar", 3, Some((3, 4)))]
+        #[case(Newline::LineFeed, "foo\nbar\nquux", 4, Some((7, 8)))]
+        #[case(Newline::CrLf, "foo\r\nbar", 4, None)]
+        fn search_after(
+            #[case] nl: Newline,
+            #[case] s: &str,
+            #[case] start: usize,
+            #[case] m: Option<(usize, usize)>,
+        ) {
+            assert_eq!(nl.search_after(s, start), m);
+            if let Some((i, j)) = m {
+                assert!(i >= start);
+                assert_eq!(&s[i..j], nl.as_str());
+            }
+        }
+
+        #[rstest]
+        #[case(Newline::LineFeed, "foo\nbar", 0, None)]
+        #[case(Newline::LineFeed, "foo\nbar", 3, None)]
+        #[case(Newline::LineFeed, "foo\nbar", 4, Some((3, 4)))]
+        #[case(Newline::CrLf, "foo\r\nbar", 4, None)]
+        #[case(Newline::CrLf, "foo\r\nbar", 5, Some((3, 5)))]
+        fn rsearch_before(
+            #[case] nl: Newline,
+            #[case] s: &str,
+            #[case] stop: usize,
+            #[case] m: Option<(usize, usize)>,
+        ) {
+            assert_eq!(nl.rsearch_before(s, stop), m);
+            if let Some((i, j)) = m {
+                assert!(j <= stop);
+                assert_eq!(&s[i..j], nl.as_str());
             }
         }
     }
@@ -180,4 +228,8 @@ mod tests {
             }
         }
     }
+
+    // newline set: search_after
+    // newline set: rsearch_before
+    // - CRLF ~ \r<stop>\n
 }
