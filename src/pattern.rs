@@ -1,3 +1,4 @@
+use crate::iter::FindIndices;
 use crate::nl::Newline;
 use crate::nlset::NewlineSet;
 
@@ -13,6 +14,13 @@ mod private {
 pub trait NewlinePattern: private::Sealed {
     fn search(&self, s: &str) -> Option<(usize, usize)>;
     fn rsearch(&self, s: &str) -> Option<(usize, usize)>;
+
+    fn find_indices<'a>(&'a self, s: &'a str) -> FindIndices<'a, Self>
+    where
+        Self: Sized,
+    {
+        FindIndices::new(self, s)
+    }
 }
 
 impl NewlinePattern for Newline {
@@ -180,4 +188,15 @@ mod tests {
             }
         }
     }
+
+    // newline: find_indices()
+    //  CR ~ \r\r\n
+    //  CRLF ~ \r\r\n
+    //  rev()
+    //  next() mixed with next_back()
+
+    // newline set: find_indices()
+    //  {CR, CRLF} ~ \r\r\n
+    //  rev()
+    //  next() mixed with next_back()
 }
