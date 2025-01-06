@@ -15,7 +15,7 @@ exclude = ["/.*"]
 strum = { version = "0.26.2", default-features = false, features = ["derive"] }
 
 [dev-dependencies]
-itertools = "0.13.0"
+itertools = "0.14.0"
 rstest = { version = "0.24.0", default-features = false }
 
 [features]
