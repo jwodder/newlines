@@ -2,6 +2,7 @@ use crate::nl::Newline;
 use crate::nlset::NewlineSet;
 
 mod private {
+    #[allow(unnameable_types)]
     pub trait Sealed {}
 
     impl Sealed for super::Newline {}
