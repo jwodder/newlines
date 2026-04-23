@@ -287,4 +287,6 @@ mod tests {
             );
         }
     }
+
+    // Add more tests of `CharSet` (particularly of `CharSetIter`)
 }
