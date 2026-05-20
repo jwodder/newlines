@@ -1,3 +1,4 @@
+use crate::iter::FindIndices;
 use crate::nl::Newline;
 use crate::nlset::NewlineSet;
 
@@ -13,6 +14,13 @@ mod private {
 pub trait NewlinePattern: private::Sealed {
     fn search(&self, s: &str) -> Option<(usize, usize)>;
     fn rsearch(&self, s: &str) -> Option<(usize, usize)>;
+
+    fn find_indices<'a>(&'a self, s: &'a str) -> FindIndices<'a, Self>
+    where
+        Self: Sized,
+    {
+        FindIndices::new(self, s)
+    }
 }
 
 impl NewlinePattern for Newline {
@@ -179,5 +187,109 @@ mod tests {
                 assert!(nlset.contains(Newline::try_from(&s[start..end]).unwrap()));
             }
         }
+
+        mod find_indices {
+            use super::*;
+
+            mod ascii {
+                use super::*;
+
+                #[test]
+                fn empty() {
+                    let mut iter = NewlineSet::ASCII.find_indices("");
+                    assert_eq!(iter.next(), None);
+                    assert_eq!(iter.next(), None);
+                    assert_eq!(iter.next_back(), None);
+                    assert_eq!(iter.next_back(), None);
+                }
+
+                #[test]
+                fn no_newline() {
+                    let mut iter = NewlineSet::ASCII.find_indices("foobar");
+                    assert_eq!(iter.next(), None);
+                    assert_eq!(iter.next(), None);
+                    assert_eq!(iter.next_back(), None);
+                    assert_eq!(iter.next_back(), None);
+                }
+
+                #[rstest]
+                #[case("\n", (0, 1))]
+                #[case("\r", (0, 1))]
+                #[case("\r\n", (0, 2))]
+                #[case("foo\n", (3, 4))]
+                #[case("foo\r", (3, 4))]
+                #[case("foo\r\n", (3, 5))]
+                #[case("\nfoo", (0, 1))]
+                #[case("\rfoo", (0, 1))]
+                #[case("\r\nfoo", (0, 2))]
+                #[case("foo\nbar", (3, 4))]
+                #[case("foo\rbar", (3, 4))]
+                #[case("foo\r\nbar", (3, 5))]
+                #[case("foo“\n”bar", (6, 7))]
+                #[case("foo“\r”bar", (6, 7))]
+                #[case("foo“\r\n”bar", (6, 8))]
+                fn one_newline(#[case] s: &str, #[case] value: (usize, usize)) {
+                    let mut iter = NewlineSet::ASCII.find_indices(s);
+                    assert_eq!(iter.next(), Some(value));
+                    assert_eq!(iter.next(), None);
+                    assert_eq!(iter.next(), None);
+                    assert_eq!(iter.next_back(), None);
+                    assert_eq!(iter.next_back(), None);
+                    let mut riter = NewlineSet::ASCII.find_indices(s);
+                    assert_eq!(riter.next_back(), Some(value));
+                    assert_eq!(riter.next_back(), None);
+                    assert_eq!(riter.next_back(), None);
+                    assert_eq!(riter.next(), None);
+                    assert_eq!(riter.next(), None);
+                }
+
+                #[rstest]
+                #[case("\n\r", (0, 1), (1, 2))]
+                #[case("foo\n\rbar", (3, 4), (4, 5))]
+                #[case("foo\n\nbar", (3, 4), (4, 5))]
+                #[case("foo\r\rbar", (3, 4), (4, 5))]
+                #[case("foo\nbar\n", (3, 4), (7, 8))]
+                #[case("foo\rbar\r", (3, 4), (7, 8))]
+                #[case("foo\r\nbar\r\n", (3, 5), (8, 10))]
+                fn two_newlines(
+                    #[case] s: &str,
+                    #[case] nel1: (usize, usize),
+                    #[case] nel2: (usize, usize),
+                ) {
+                    let mut iter = NewlineSet::ASCII.find_indices(s);
+                    assert_eq!(iter.next(), Some(nel1));
+                    assert_eq!(iter.next(), Some(nel2));
+                    assert_eq!(iter.next(), None);
+                    assert_eq!(iter.next(), None);
+                    assert_eq!(iter.next_back(), None);
+                    assert_eq!(iter.next_back(), None);
+                    let mut riter = NewlineSet::ASCII.find_indices(s);
+                    assert_eq!(riter.next_back(), Some(nel2));
+                    assert_eq!(riter.next_back(), Some(nel1));
+                    assert_eq!(riter.next_back(), None);
+                    assert_eq!(riter.next_back(), None);
+                    assert_eq!(riter.next(), None);
+                    assert_eq!(riter.next(), None);
+                    let mut diter = NewlineSet::ASCII.find_indices(s);
+                    assert_eq!(diter.next(), Some(nel1));
+                    assert_eq!(diter.next_back(), Some(nel2));
+                    assert_eq!(diter.next(), None);
+                    assert_eq!(diter.next(), None);
+                    assert_eq!(diter.next_back(), None);
+                    assert_eq!(diter.next_back(), None);
+                }
+            }
+        }
     }
+
+    // newline: find_indices()
+    //  CR ~ \r\r\n
+    //  CRLF ~ \r\r\n
+    //  rev()
+    //  next() mixed with next_back()
+
+    // newline set: find_indices()
+    //  {CR, CRLF} ~ \r\r\n
+    //  rev()
+    //  next() mixed with next_back()
 }
